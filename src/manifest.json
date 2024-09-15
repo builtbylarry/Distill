@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Distill: Focus Extension",
+  "version": "1.0.0",
+  "description": "Distill your web experience into only what you need.",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "permissions": ["activeTab", "storage", "webNavigation"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}
