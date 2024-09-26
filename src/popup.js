@@ -7,7 +7,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const blockContent = document.getElementById("block-content");
   const inspectButton = document.getElementById("inspect-button");
   const cancelButton = document.getElementById("cancel-button");
-  const resultDiv = document.getElementById("result");
   const deletedList = document.getElementById("deleted-list");
   const websiteInput = document.getElementById("website-input");
   const blockButton = document.getElementById("block-button");
@@ -31,18 +30,18 @@ document.addEventListener("DOMContentLoaded", function () {
     e.preventDefault();
     showTab(mainContent);
     [mainTab, listTab, blockTab].forEach((tab) =>
-      tab.classList.remove("bg-white", "border-l", "border-t", "border-r")
+      tab.classList.remove("selected-tab")
     );
-    mainTab.classList.add("bg-white", "border-l", "border-t", "border-r");
+    mainTab.classList.add("selected-tab");
   });
 
   listTab.addEventListener("click", (e) => {
     e.preventDefault();
     showTab(listContent);
     [mainTab, listTab, blockTab].forEach((tab) =>
-      tab.classList.remove("bg-white", "border-l", "border-t", "border-r")
+      tab.classList.remove("selected-tab")
     );
-    listTab.classList.add("bg-white", "border-l", "border-t", "border-r");
+    listTab.classList.add("selected-tab");
     websiteSearch.value = "";
     updateDeletedList();
   });
@@ -51,9 +50,9 @@ document.addEventListener("DOMContentLoaded", function () {
     e.preventDefault();
     showTab(blockContent);
     [mainTab, listTab, blockTab].forEach((tab) =>
-      tab.classList.remove("bg-white", "border-l", "border-t", "border-r")
+      tab.classList.remove("selected-tab")
     );
-    blockTab.classList.add("bg-white", "border-l", "border-t", "border-r");
+    blockTab.classList.add("selected-tab");
     updateBlockedList();
   });
 
@@ -77,12 +76,9 @@ document.addEventListener("DOMContentLoaded", function () {
     if (isInspecting) {
       inspectButton.classList.add("hidden");
       cancelButton.classList.remove("hidden");
-      resultDiv.textContent =
-        "Inspecting... Click an element to remove it or press ESC to cancel.";
     } else {
       inspectButton.classList.remove("hidden");
       cancelButton.classList.add("hidden");
-      resultDiv.textContent = "";
     }
   }
 
@@ -94,12 +90,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if (request.action === "elementRemoved") {
       isInspecting = false;
       updateInspectionState();
-      resultDiv.innerHTML = `
-        <p class="font-semibold">Element removed:</p>
-        <p>Tag: ${request.data.tagName}</p>
-        <p>ID: ${request.data.id || "N/A"}</p>
-        <p>Classes: ${request.data.classes.join(", ") || "N/A"}</p>
-      `;
       updateDeletedList();
     } else if (request.action === "contentScriptNotReady") {
       alert(
@@ -134,35 +124,35 @@ document.addEventListener("DOMContentLoaded", function () {
 
         hasElements = true;
         let urlDiv = document.createElement("div");
-        urlDiv.className = "mb-4";
         urlDiv.innerHTML = `
-          <h3 class="font-semibold text-lg">${new URL(url).hostname}</h3>
-          <ul class="list-disc pl-5">
+          <h3 class="removed-elements-website-name">${
+            new URL(url).hostname
+          }</h3>
+          <div class="removed-elements-list">
             ${removedElements[url]
               .map(
                 (el, index) => `
-              <li class="flex items-center justify-between">
-                <span>
+              <div class="removed-element-container">
+                <div class="removed-element-name">
                   ${el.tagName}
-                  ${el.id ? `#${el.id}` : ""}
                   ${el.classes.length ? `.${el.classes.join(".")}` : ""}
-                </span>
-                <button class="restore-btn text-red-500 hover:text-red-700" data-url="${url}" data-index="${index}">
-                  <i class="fas fa-trash-alt"></i>
+                </div>
+                <button class="restore-btn" data-url="${url}" data-index="${index}">
+                  <img srcset="../assets/icons/trash-solid.svg" class="trash-icon">
                 </button>
-              </li>
+              </div>
             `
               )
               .join("")}
-          </ul>
+          </div>
         `;
         deletedList.appendChild(urlDiv);
       }
 
       if (!hasElements) {
         deletedList.innerHTML = searchTerm
-          ? "<p>No matching websites found.</p>"
-          : "<p>No elements have been deleted yet.</p>";
+          ? "<p class='no-results-text'>No matching websites found.</p>"
+          : "<p class='no-results-text'>No elements have been deleted yet.</p>";
       }
 
       document.querySelectorAll(".restore-btn").forEach((btn) => {
@@ -225,19 +215,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
       blockedWebsites.forEach((website, index) => {
         let websiteDiv = document.createElement("div");
-        websiteDiv.className =
-          "flex items-center justify-between bg-white p-2 rounded";
+        websiteDiv.classList.add("removed-element-container");
         websiteDiv.innerHTML = `
-          <span>${website}</span>
-          <button class="unblock-btn text-red-500 hover:text-red-700" data-index="${index}">
-            <i class="fas fa-times"></i>
-          </button>
+            <span>${website}</span>
+            <button class="unblock-btn data-index="${index}">
+                <img srcset="../assets/icons/trash-solid.svg" class="trash-icon">
+            </button>
         `;
         blockedList.appendChild(websiteDiv);
       });
 
       if (blockedWebsites.length === 0) {
-        blockedList.innerHTML = "<p>No websites are currently blocked.</p>";
+        blockedList.innerHTML =
+          "<p class='no-results-text'>No websites are currently blocked.</p>";
       }
 
       document.querySelectorAll(".unblock-btn").forEach((btn) => {

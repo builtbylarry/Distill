@@ -1,0 +1,45 @@
+* {
+  --dark-gray: #2d2a34;
+  --white: #fcfcfc;
+  --light-purple: #c7b4fa;
+  --purple: #926df8;
+  --dark-purple: #5d26f6;
+
+  font-family: Arial, Helvetica, sans-serif;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--dark-gray);
+  overflow: hidden;
+}
+
+.blocked-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: var(--white);
+  font-size: 22px;
+}
+
+.logo {
+  width: 15%;
+  height: 15%;
+  max-width: 222px;
+  max-height: 200px;
+}
+
+@media screen and (max-width: 1000px) {
+  .blocked-container {
+    font-size: 16px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .blocked-container {
+    font-size: 12px;
+  }
+}

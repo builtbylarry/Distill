@@ -74,7 +74,7 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
     }
     if (blockedWebsites.some((blocked) => url.hostname.includes(blocked))) {
       chrome.tabs.update(details.tabId, {
-        url: chrome.runtime.getURL("blocked.html"),
+        url: chrome.runtime.getURL("./src/blocked.html"),
       });
     }
   });

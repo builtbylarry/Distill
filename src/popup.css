@@ -1,0 +1,262 @@
+* {
+  --dark-gray: #2d2a34;
+  --white: #fcfcfc;
+  --light-purple: #c7b4fa;
+  --purple: #926df8;
+  --dark-purple: #5d26f6;
+  --navbar-height: 40px;
+
+  font-family: Arial, Helvetica, sans-serif;
+  box-sizing: border-box;
+  color: var(--white);
+}
+
+body {
+  width: 350px;
+  height: 300px;
+  background-color: var(--dark-gray);
+  color: var(--white);
+  padding: 0px;
+  margin: 0px;
+  overflow-y: scroll;
+}
+
+hr {
+  border: none;
+  height: 1px;
+  background-color: #242129;
+  margin: 10px 0;
+}
+
+.hidden {
+  display: none !important;
+  background-color: green;
+  width: 900px;
+}
+
+/* ---------- Navbar ---------- */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 40px;
+  margin: 10px;
+}
+
+.logo {
+  width: 48px;
+  height: 48px;
+}
+
+.tabs {
+  display: flex;
+  justify-content: space-between;
+  list-style-type: none;
+}
+
+.tab {
+  margin-right: 10px;
+  font-size: 14px;
+  position: relative;
+}
+
+.tab a {
+  text-decoration: none;
+  color: var(--white);
+}
+
+.tab::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -8px;
+  left: 0;
+  background-color: var(--light-purple);
+  transition: width 0.3s ease;
+}
+
+.tab:hover::after {
+  width: 100%;
+}
+
+.tab:last-child {
+  margin-right: 0px;
+}
+
+.selected-tab {
+  color: var(--light-purple) !important;
+}
+
+/* ---------- Main Page ---------- */
+
+.main-content {
+  display: flex;
+  width: 100%;
+  height: calc(100% - var(--navbar-height));
+  justify-content: center;
+  align-items: center;
+}
+
+.inspect-button {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  font-size: 16px;
+  border: 2px solid var(--dark-purple);
+  color: var(--white);
+  background-color: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.inspect-button:hover {
+  background-color: var(--dark-purple);
+  color: white;
+}
+
+/* ---------- Elements List Page ---------- */
+
+.list-content {
+  width: 100%;
+  height: calc(100% - var(--navbar-height));
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 40px 10px 12px;
+  font-size: 14px;
+  color: var(--white);
+  background-color: var(--dark-gray);
+  border: 1px solid var(--dark-purple);
+  border-radius: 6px;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--purple);
+}
+
+.removed-elements-list-container {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.restore-btn,
+.unblock-btn {
+  width: 25px;
+  height: 25px;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.trash-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.removed-elements-website-name {
+  color: var(--white);
+  text-align: center;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  font-size: 16px;
+}
+
+.removed-elements-list > div:first-child {
+  border-top: 1px solid var(--dark-purple);
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+.removed-elements-list > div:last-child {
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.removed-element-container {
+  border: 1px solid var(--dark-purple);
+  border-top: none;
+  padding: 10px;
+  width: 100%;
+  height: 35px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.removed-element-name {
+  width: 80%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.no-results-text {
+  width: 100%;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* ---------- Blocked Websites Page ---------- */
+
+.blocked-content {
+  width: 100%;
+  height: calc(100% - var(--navbar-height));
+  padding: 10px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.input-website-container {
+  display: flex;
+}
+
+.website-input {
+  width: 75%;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
+}
+
+.block-button {
+  box-sizing: border-box;
+  width: 25%;
+  border-radius: 5px;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+  font-size: 16px;
+  border: 1px solid var(--dark-purple);
+  border-left: none;
+  color: var(--white);
+  background-color: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.block-button:hover {
+  background-color: var(--dark-purple);
+}
+
+.blocked-websites-list {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.blocked-websites-list > div:first-child {
+  border-top: 1px solid var(--dark-purple);
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+.blocked-websites-list > div:last-child {
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}

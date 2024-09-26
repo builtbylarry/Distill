@@ -2,84 +2,54 @@
 <html>
   <head>
     <title>Distill</title>
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
-      rel="stylesheet"
-    />
+    <link rel="stylesheet" href="popup.css" />
   </head>
-  <body class="w-96 p-4 bg-gray-100">
-    <div class="mb-4">
-      <ul class="flex border-b">
-        <li class="-mb-px mr-1">
-          <a
-            class="bg-white inline-block border-l border-t border-r rounded-t py-2 px-4 text-blue-700 font-semibold"
-            href="#"
-            id="main-tab"
-            >Main</a
-          >
-        </li>
-        <li class="mr-1">
-          <a
-            class="bg-gray-200 inline-block py-2 px-4 text-blue-500 hover:text-blue-800 font-semibold"
-            href="#"
-            id="list-tab"
-            >Deleted Elements</a
-          >
-        </li>
-        <li class="mr-1">
-          <a
-            class="bg-gray-200 inline-block py-2 px-4 text-blue-500 hover:text-blue-800 font-semibold"
-            href="#"
-            id="block-tab"
-            >Block Websites</a
-          >
-        </li>
-      </ul>
-    </div>
-    <div id="main-content">
-      <button
-        id="inspect-button"
-        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-      >
-        Inspect and Remove Element
-      </button>
-      <button
-        id="cancel-button"
-        class="hidden bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-      >
-        Cancel
-      </button>
-    </div>
-    <div id="list-content" class="hidden">
-      <div class="mb-4">
-        <input
-          type="text"
-          id="website-search"
-          placeholder="Search websites..."
-          class="w-full p-2 border rounded"
-        />
+  <body>
+    <div class="navbar">
+      <div class="left">
+        <img src="../assets/logo.svg" class="logo" />
       </div>
-      <div id="deleted-list" class="space-y-4"></div>
+      <div class="right">
+        <div class="tabs-container">
+          <ul class="tabs">
+            <li class="tab">
+              <a href="#" id="main-tab" class="selected-tab tab-link">Main</a>
+            </li>
+            <li class="tab">
+              <a href="#" id="list-tab">Elements</a>
+            </li>
+            <li class="tab">
+              <a href="#" id="block-tab">Websites</a>
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
-
-    <div id="block-content" class="hidden">
+    <hr />
+    <div id="main-content" class="main-content">
+      <button id="inspect-button" class="inspect-button">Remove Element</button>
+      <button id="cancel-button">Cancel</button>
+    </div>
+    <div id="list-content" class="list-content">
       <input
         type="text"
-        id="website-input"
-        placeholder="Enter website URL"
-        class="w-full p-2 mb-2 border rounded"
+        id="website-search"
+        placeholder="Search websites..."
+        class="input"
       />
-      <button
-        id="block-button"
-        class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mb-4"
-      >
-        Block Website
-      </button>
-      <div id="blocked-list" class="space-y-2"></div>
+      <div id="deleted-list" class="removed-elements-list-container"></div>
+    </div>
+    <div id="block-content" class="blocked-content">
+      <div class="input-website-container">
+        <input
+          type="text"
+          id="website-input"
+          class="input website-input"
+          placeholder="Enter website URL"
+        />
+        <button id="block-button" class="block-button">Block</button>
+      </div>
+      <div id="blocked-list" class="blocked-websites-list"></div>
     </div>
     <script src="popup.js"></script>
   </body>
