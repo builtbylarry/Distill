@@ -1,4 +1,5 @@
 let tabsWithContentScript = new Set();
+let isExtensionEnabled = true;
 
 function checkContentScript(tabId) {
   return new Promise((resolve) => {
@@ -8,6 +9,26 @@ function checkContentScript(tabId) {
       } else {
         tabsWithContentScript.add(tabId);
         resolve(true);
+      }
+    });
+  });
+}
+
+function handleExtensionStateChange(isEnabled) {
+  isExtensionEnabled = isEnabled;
+  if (!isEnabled) {
+    unblockAllTabs();
+  }
+}
+
+function unblockAllTabs() {
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach((tab) => {
+      if (tab.url.startsWith(chrome.runtime.getURL("./src/blocked.html"))) {
+        chrome.tabs.sendMessage(tab.id, {
+          action: "updateExtensionState",
+          isEnabled: false,
+        });
       }
     });
   });
@@ -77,23 +98,37 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case "elementRemoved":
       handleElementRemoved(request, sender);
       break;
+    case "updateExtensionState":
+      handleExtensionStateChange(request.isEnabled);
+      break;
   }
 });
 
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
-  chrome.storage.local.get({ blockedWebsites: [] }, function (result) {
-    let blockedWebsites = result.blockedWebsites;
-    let url;
-    try {
-      url = new URL(details.url);
-    } catch (e) {
-      console.error("Invalid URL:", details.url);
-      return;
+  chrome.storage.local.get(
+    { blockedWebsites: [], extensionEnabled: true },
+    function (result) {
+      if (!result.extensionEnabled) return;
+
+      let blockedWebsites = result.blockedWebsites;
+      let url;
+      try {
+        url = new URL(details.url);
+      } catch (e) {
+        console.error("Invalid URL:", details.url);
+        return;
+      }
+      if (blockedWebsites.some((blocked) => url.hostname.includes(blocked))) {
+        chrome.tabs.update(details.tabId, {
+          url: chrome.runtime.getURL(
+            `./src/blocked.html?originalUrl=${encodeURIComponent(details.url)}`
+          ),
+        });
+      }
     }
-    if (blockedWebsites.some((blocked) => url.hostname.includes(blocked))) {
-      chrome.tabs.update(details.tabId, {
-        url: chrome.runtime.getURL("./src/blocked.html"),
-      });
-    }
-  });
+  );
+});
+
+chrome.storage.local.get({ extensionEnabled: true }, function (result) {
+  isExtensionEnabled = result.extensionEnabled;
 });

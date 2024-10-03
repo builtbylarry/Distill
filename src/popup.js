@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const blockButton = document.getElementById("block-button");
   const blockedList = document.getElementById("blocked-list");
   const websiteSearch = document.getElementById("website-search");
-
+  const extensionToggle = document.getElementById("extension-toggle");
   let isInspecting = false;
 
   function showTab(tabContent) {
@@ -161,6 +161,25 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  extensionToggle.addEventListener("change", function () {
+    const isEnabled = this.checked;
+    chrome.storage.local.set({ extensionEnabled: isEnabled }, function () {
+      chrome.runtime.sendMessage({
+        action: "updateExtensionState",
+        isEnabled: isEnabled,
+      });
+
+      chrome.tabs.query({}, function (tabs) {
+        tabs.forEach(function (tab) {
+          chrome.tabs.sendMessage(tab.id, {
+            action: "updateExtensionState",
+            isEnabled: isEnabled,
+          });
+        });
+      });
+    });
+  });
+
   mainTab.addEventListener("click", (e) => {
     e.preventDefault();
     showTab(mainContent);
@@ -249,6 +268,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       });
     }
+  });
+
+  chrome.storage.local.get({ extensionEnabled: true }, function (result) {
+    extensionToggle.checked = result.extensionEnabled;
   });
 
   showTab(mainContent);

@@ -1,3 +1,4 @@
+let isExtensionEnabled = true;
 let isInspecting = false;
 let overlay;
 let highlightedElement;
@@ -36,7 +37,7 @@ function createOverlay() {
   overlay.style.width = "100%";
   overlay.style.height = "100%";
   overlay.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
-  overlay.style.zIndex = "2147483647";
+  overlay.style.zIndex = "2147483647"; // Max z-index
   overlay.style.pointerEvents = "none";
   document.body.appendChild(overlay);
 }
@@ -126,6 +127,40 @@ function getXPath(element) {
   }
 }
 
+function hideStoredElements() {
+  if (!isExtensionEnabled) return;
+
+  chrome.storage.local.get({ removedElements: {} }, function (result) {
+    let removedElements = result.removedElements[window.location.href] || [];
+    removedElements.forEach(function (elementInfo) {
+      let element;
+      if (elementInfo.id) {
+        element = document.getElementById(elementInfo.id);
+      } else if (elementInfo.xpath) {
+        element = document.evaluate(
+          elementInfo.xpath,
+          document,
+          null,
+          XPathResult.FIRST_ORDERED_NODE_TYPE,
+          null
+        ).singleNodeValue;
+      }
+      if (element) {
+        element.style.display = "none";
+      }
+    });
+  });
+}
+
+function restoreAllElements() {
+  chrome.storage.local.get({ removedElements: {} }, function (result) {
+    let removedElements = result.removedElements[window.location.href] || [];
+    removedElements.forEach(function (elementInfo) {
+      restoreElement(elementInfo);
+    });
+  });
+}
+
 function restoreElement(elementInfo) {
   let element;
   if (elementInfo.id) {
@@ -140,7 +175,9 @@ function restoreElement(elementInfo) {
     ).singleNodeValue;
   }
 
-  if (!element) {
+  if (element) {
+    element.style.display = "";
+  } else {
     // If the element doesn't exist, create a new one
     element = document.createElement(elementInfo.tagName);
     if (elementInfo.id) element.id = elementInfo.id;
@@ -161,33 +198,7 @@ function restoreElement(elementInfo) {
       // If we can't find the original parent, append to body
       document.body.appendChild(element);
     }
-  } else {
-    // If the element exists, just make it visible again
-    element.style.display = "";
   }
-}
-
-function hideStoredElements() {
-  chrome.storage.local.get({ removedElements: {} }, function (result) {
-    let removedElements = result.removedElements[window.location.href] || [];
-    removedElements.forEach(function (elementInfo) {
-      let element;
-      if (elementInfo.id) {
-        element = document.getElementById(elementInfo.id);
-      } else if (elementInfo.xpath) {
-        element = document.evaluate(
-          elementInfo.xpath,
-          document,
-          null,
-          XPathResult.FIRST_ORDERED_NODE_TYPE,
-          null
-        ).singleNodeValue;
-      }
-      if (element) {
-        element.remove();
-      }
-    });
-  });
 }
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
@@ -199,9 +210,21 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     stopInspection();
   } else if (request.action === "restoreElement") {
     restoreElement(request.data);
+  } else if (request.action === "updateExtensionState") {
+    isExtensionEnabled = request.isEnabled;
+    if (isExtensionEnabled) {
+      hideStoredElements();
+    } else {
+      restoreAllElements();
+    }
   }
 
   return true;
 });
 
-hideStoredElements();
+chrome.storage.local.get({ extensionEnabled: true }, function (result) {
+  isExtensionEnabled = result.extensionEnabled;
+  if (isExtensionEnabled) {
+    hideStoredElements();
+  }
+});

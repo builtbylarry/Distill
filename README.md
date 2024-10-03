@@ -8,7 +8,7 @@
 
 ## Overview
 
-Distill is a browser extension used to block unwanted web content, creating a more focused browsing experience. It allows you to decide what gets blocked, whether it’s distracting elements like notifications, content feeds, and messages, or entire websites.
+Distill is a browser extension that blocks unwanted web content, creating a more focused browsing experience. It lets you decide what gets blocked, whether it's distracting features like notifications, content feeds, messages, or entire websites.
 
 ## Getting started
 
