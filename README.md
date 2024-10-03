@@ -6,6 +6,10 @@
 
 </div>
 
+## Overview
+
+Distill is a browser extension used to block unwanted web content, creating a more focused browsing experience. It allows you to decide what gets blocked, whether it’s distracting elements like notifications, content feeds, and messages, or entire websites.
+
 ## Getting started
 
 1. Clone the repo
@@ -23,7 +27,7 @@ git clone https://github.com/LarryBaer/Distill
 
 ## Contributing
 
-Any contributions are **greatly appreciated**!
+Any contributions are greatly appreciated!
 If you have a suggestion that would make Distill better, please open an issue and assign it the "enhancement" tag.
 
 ## License

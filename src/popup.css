@@ -28,6 +28,10 @@ hr {
   margin: 10px 0;
 }
 
+ul {
+  padding: 0px;
+}
+
 .hidden {
   display: none !important;
 }
@@ -42,9 +46,15 @@ hr {
   margin: 10px;
 }
 
+.right {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .logo {
-  width: 48px;
-  height: 48px;
+  width: 38px;
+  height: 38px;
 }
 
 .tabs {
@@ -85,6 +95,55 @@ hr {
 
 .selected-tab {
   color: var(--light-purple) !important;
+}
+
+.toggle-container {
+  margin-right: 10px;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 17px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--light-purple);
+  transition: 0.4s;
+  border-radius: 17px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 13px;
+  width: 13px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--white);
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--dark-purple);
+}
+
+input:checked + .slider:before {
+  transform: translateX(13px);
 }
 
 /* ---------- Main Page ---------- */
@@ -147,8 +206,8 @@ hr {
   padding-bottom: 10px;
 }
 
-.restore-btn,
-.unblock-btn {
+.restore-button,
+.unblock-button {
   width: 25px;
   height: 25px;
   background-color: transparent;

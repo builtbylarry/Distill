@@ -2,20 +2,6 @@ let isInspecting = false;
 let overlay;
 let highlightedElement;
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-  if (request.action === "ping") {
-    sendResponse({ status: "ready" });
-  } else if (request.action === "startInspection") {
-    startInspection();
-  } else if (request.action === "cancelInspection") {
-    stopInspection();
-  } else if (request.action === "restoreElement") {
-    restoreElement(request.data);
-  }
-
-  return true;
-});
-
 function stopInspection() {
   if (isInspecting) {
     isInspecting = false;
@@ -123,10 +109,10 @@ function getXPath(element) {
   if (element.id !== "") return 'id("' + element.id + '")';
   if (element === document.body) return element.tagName;
 
-  var ix = 0;
-  var siblings = element.parentNode.childNodes;
-  for (var i = 0; i < siblings.length; i++) {
-    var sibling = siblings[i];
+  let ix = 0;
+  let siblings = element.parentNode.childNodes;
+  for (let i = 0; i < siblings.length; i++) {
+    let sibling = siblings[i];
     if (sibling === element)
       return (
         getXPath(element.parentNode) +
@@ -203,5 +189,19 @@ function hideStoredElements() {
     });
   });
 }
+
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+  if (request.action === "ping") {
+    sendResponse({ status: "ready" });
+  } else if (request.action === "startInspection") {
+    startInspection();
+  } else if (request.action === "cancelInspection") {
+    stopInspection();
+  } else if (request.action === "restoreElement") {
+    restoreElement(request.data);
+  }
+
+  return true;
+});
 
 hideStoredElements();

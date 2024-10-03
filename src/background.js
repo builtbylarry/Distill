@@ -1,44 +1,38 @@
 let tabsWithContentScript = new Set();
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete") {
+function checkContentScript(tabId) {
+  return new Promise((resolve) => {
     chrome.tabs.sendMessage(tabId, { action: "ping" }, (response) => {
       if (chrome.runtime.lastError) {
-        tabsWithContentScript.delete(tabId);
+        resolve(false);
       } else {
         tabsWithContentScript.add(tabId);
+        resolve(true);
       }
     });
-  }
-});
+  });
+}
 
-chrome.tabs.onRemoved.addListener((tabId) => {
-  tabsWithContentScript.delete(tabId);
-});
+async function handleStartInspection() {
+  try {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    if (!tab) {
+      throw new Error("No active tab found");
+    }
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  switch (request.action) {
-    case "startInspection":
-      handleStartInspection();
-      break;
-    case "cancelInspection":
-      handleCancelInspection();
-      break;
-    case "elementRemoved":
-      handleElementRemoved(request, sender);
-      break;
-  }
-});
-
-function handleStartInspection() {
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    if (tabs[0] && tabsWithContentScript.has(tabs[0].id)) {
-      chrome.tabs.sendMessage(tabs[0].id, { action: "startInspection" });
+    const isContentScriptReady = await checkContentScript(tab.id);
+    if (isContentScriptReady) {
+      chrome.tabs.sendMessage(tab.id, { action: "startInspection" });
     } else {
-      console.error("Content script not ready in the current tab");
       chrome.runtime.sendMessage({ action: "contentScriptNotReady" });
     }
-  });
+  } catch (error) {
+    console.error("Error in handleStartInspection:", error);
+    chrome.runtime.sendMessage({ action: "contentScriptNotReady" });
+  }
 }
 
 function handleCancelInspection() {
@@ -61,6 +55,30 @@ function handleElementRemoved(request, sender) {
     chrome.storage.local.set({ removedElements: removedElements });
   });
 }
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete") {
+    checkContentScript(tabId);
+  }
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  tabsWithContentScript.delete(tabId);
+});
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  switch (request.action) {
+    case "startInspection":
+      handleStartInspection();
+      break;
+    case "cancelInspection":
+      handleCancelInspection();
+      break;
+    case "elementRemoved":
+      handleElementRemoved(request, sender);
+      break;
+  }
+});
 
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
   chrome.storage.local.get({ blockedWebsites: [] }, function (result) {
