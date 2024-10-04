@@ -44,10 +44,7 @@ function createOverlay() {
 }
 
 function removeOverlay() {
-  if (overlay && overlay.parentNode) {
-    overlay.parentNode.removeChild(overlay);
-  }
-
+  if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
   overlay = null;
 }
 
@@ -55,10 +52,7 @@ function handleMouseMove(event) {
   if (!isInspecting) return;
 
   const target = event.target;
-
-  if (highlightedElement) {
-    highlightedElement.style.outline = "";
-  }
+  if (highlightedElement) highlightedElement.style.outline = "";
 
   highlightedElement = target;
   highlightedElement.style.outline = "2px solid red";
@@ -102,9 +96,7 @@ function handleClick(event) {
 }
 
 function handleKeyDown(event) {
-  if (event.key === "Escape") {
-    stopInspection();
-  }
+  if (event.key === "Escape") stopInspection();
 }
 
 function getXPath(element) {
@@ -161,14 +153,15 @@ function getUniqueSelector(element) {
     return `[data-testid="${element.getAttribute("data-testid")}"]`;
 
   let path = [];
+
   while (element.nodeType === Node.ELEMENT_NODE) {
     let selector = element.nodeName.toLowerCase();
-    if (element.className) {
+    if (element.className)
       selector += "." + element.className.replace(/\s+/g, ".");
-    }
     path.unshift(selector);
     element = element.parentNode;
   }
+
   return path.join(" > ");
 }
 
@@ -180,12 +173,11 @@ function hideElement(elementInfo) {
     selector =
       elementInfo.tagName.toLowerCase() + "." + elementInfo.classes.join(".");
   } else {
-    selector = elementInfo.xpath; // Fallback to XPath if no better option
+    selector = elementInfo.xpath;
   }
 
-  if (!removedElementsSelectors.includes(selector)) {
+  if (!removedElementsSelectors.includes(selector))
     removedElementsSelectors.push(selector);
-  }
 
   applyStyles();
 }
@@ -293,25 +285,40 @@ function observePageChanges() {
   });
 }
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-  if (request.action === "ping") {
-    sendResponse({ status: "ready" });
-  } else if (request.action === "startInspection") {
-    startInspection();
-  } else if (request.action === "cancelInspection") {
-    stopInspection();
-  } else if (request.action === "restoreElement") {
-    restoreElement(request.data);
-  } else if (request.action === "updateExtensionState") {
-    isExtensionEnabled = request.isEnabled;
-    if (isExtensionEnabled) {
-      hideStoredElements();
-    } else {
-      restoreAllElements();
-    }
-  }
+function observePageChanges() {
+  const observer = new MutationObserver((mutations) => {
+    hideStoredElements();
+  });
 
-  return true;
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+}
+
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+  switch (request.action) {
+    case "ping":
+      sendResponse({ status: "ready" });
+      break;
+    case "startInspection":
+      startInspection();
+      break;
+    case "cancelInspection":
+      stopInspection();
+      break;
+    case "restoreElement":
+      restoreElement(request.data);
+      break;
+    case "updateExtensionState":
+      isExtensionEnabled = request.isEnabled;
+      if (isExtensionEnabled) {
+        hideStoredElements();
+      } else {
+        restoreAllElements();
+      }
+      break;
+  }
 });
 
 chrome.storage.local.get(
@@ -332,16 +339,5 @@ if (document.readyState === "complete") {
   window.addEventListener("load", () => {
     hideStoredElements();
     observePageChanges();
-  });
-}
-
-function observePageChanges() {
-  const observer = new MutationObserver((mutations) => {
-    hideStoredElements();
-  });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
   });
 }

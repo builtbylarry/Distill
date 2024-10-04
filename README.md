@@ -2,8 +2,6 @@
 
 [![Distill](./assets/images/logo_with_text.png)](https://github.com/LarryBaer/Distill)
 
-> Distill your web experience into only what you need.
-
 </div>
 
 ## Overview
@@ -30,18 +28,14 @@ git clone https://github.com/LarryBaer/Distill
 Any contributions are greatly appreciated!
 If you have a suggestion that would make Distill better, please open an issue and assign it the "enhancement" tag.
 
-1. Clone the repository to your local machine:
-
-`git clone git@github.com:LarryBaer/Distill.git`
-
-2. Create a new feature branch:
+To make changes, create a new feature branch:
 
 `git checkout -b feature/MyFeatureName`
 
-3. After making your changes, submit a pull request via the [GitHub web panel](https://github.com/LarryBaer/Distill/compare).
+After making your changes, submit a pull request via the [GitHub web panel](https://github.com/LarryBaer/Distill/compare).
 
 > Note that making public contributions to this repo means you accept the LICENSE in place, and are contributing code that also respects that same license
 
 ## License
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+Distributed under the Apache 2.0 License. See `LICENSE.txt` for more information.

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Distill: Focus Extension",
   "version": "1.0.0",
-  "description": "Distill your web experience into only what you need.",
+  "description": "Block distracting websites or specific content to create a focused, distraction-free browsing experience.",
   "icons": {
     "16": "./assets/images/logo_16x.png",
     "48": "./assets/images/logo_48x.png",

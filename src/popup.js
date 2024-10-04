@@ -14,17 +14,30 @@ document.addEventListener("DOMContentLoaded", function () {
   const websiteSearch = document.getElementById("website-search");
   const extensionToggle = document.getElementById("extension-toggle");
   const disabledMessage = document.getElementById("disabled-text");
+  const navbar = document.getElementById("navbar");
+  const hr = document.querySelector("hr");
+  const body = document.querySelector("body");
   let isInspecting = false;
 
   function showTab(tabContent) {
     [mainContent, listContent, blockContent].forEach((content) => {
-      if (content) {
-        content.classList.add("hidden");
-      }
+      if (content) content.classList.add("hidden");
     });
-    if (tabContent) {
-      tabContent.classList.remove("hidden");
-    }
+    if (tabContent) tabContent.classList.remove("hidden");
+  }
+
+  function unblockWebsite(index) {
+    chrome.storage.local.get({ blockedWebsites: [] }, function (result) {
+      let blockedWebsites = result.blockedWebsites;
+      blockedWebsites.splice(index, 1);
+
+      chrome.storage.local.set(
+        { blockedWebsites: blockedWebsites },
+        function () {
+          updateBlockedList();
+        }
+      );
+    });
   }
 
   function updateInspectionState() {
@@ -32,17 +45,27 @@ document.addEventListener("DOMContentLoaded", function () {
       const isEnabled = result.extensionEnabled;
 
       if (isInspecting) {
+        navbar.style.display = "none";
+        hr.style.display = "none";
+        body.style.height = "50px";
+        body.style.width = "50px";
+        mainContent.style.display = "block";
         inspectButton.style.display = "none";
         cancelButton.style.display = "block";
         disabledMessage.style.display = "none";
       } else {
+        navbar.style.display = "flex";
+        hr.style.display = "block";
+        body.style.height = "300px";
+        body.style.width = "350px";
+        mainContent.style.display = "flex";
         cancelButton.style.display = "none";
         if (isEnabled) {
           inspectButton.style.display = "block";
           disabledMessage.style.display = "none";
         } else {
           inspectButton.style.display = "none";
-          disabledMessage.style.display = "block";
+          disabledMessage.style.display = "flex";
         }
       }
     });
@@ -65,6 +88,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         hasElements = true;
         let urlDiv = document.createElement("div");
+
         urlDiv.innerHTML = `
           <h3 class="removed-elements-website-name">${
             new URL(url).hostname
@@ -87,6 +111,7 @@ document.addEventListener("DOMContentLoaded", function () {
               .join("")}
           </div>
         `;
+
         deletedList.appendChild(urlDiv);
       }
 
@@ -107,11 +132,11 @@ document.addEventListener("DOMContentLoaded", function () {
   function restoreElement(url, index) {
     chrome.storage.local.get({ removedElements: {} }, function (result) {
       let removedElements = result.removedElements;
+
       if (removedElements[url] && removedElements[url][index]) {
         let restoredElement = removedElements[url].splice(index, 1)[0];
-        if (removedElements[url].length === 0) {
-          delete removedElements[url];
-        }
+        if (removedElements[url].length === 0) delete removedElements[url];
+
         chrome.storage.local.set(
           { removedElements: removedElements },
           function () {
@@ -147,29 +172,15 @@ document.addEventListener("DOMContentLoaded", function () {
         blockedList.appendChild(websiteDiv);
       });
 
-      if (blockedWebsites.length === 0) {
+      if (blockedWebsites.length === 0)
         blockedList.innerHTML =
           "<p class='no-results-text'>No websites are currently blocked.</p>";
-      }
 
       document.querySelectorAll(".unblock-button").forEach((btn) => {
         btn.addEventListener("click", function () {
           unblockWebsite(parseInt(this.dataset.index));
         });
       });
-    });
-  }
-
-  function unblockWebsite(index) {
-    chrome.storage.local.get({ blockedWebsites: [] }, function (result) {
-      let blockedWebsites = result.blockedWebsites;
-      blockedWebsites.splice(index, 1);
-      chrome.storage.local.set(
-        { blockedWebsites: blockedWebsites },
-        function () {
-          updateBlockedList();
-        }
-      );
     });
   }
 
@@ -240,19 +251,13 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  chrome.runtime.onMessage.addListener(function (
-    request,
-    sender,
-    sendResponse
-  ) {
+  chrome.runtime.onMessage.addListener(function (request) {
     if (request.action === "elementRemoved") {
       isInspecting = false;
       updateInspectionState();
       updateDeletedList();
     } else if (request.action === "contentScriptNotReady") {
-      alert(
-        "Please refresh the page and try again. The extension wasn't ready."
-      );
+      alert("Something went wrong - please refresh the page and try again.");
       isInspecting = false;
       updateInspectionState();
     } else if (request.action === "inspectionCanceled") {

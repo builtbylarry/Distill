@@ -1,6 +1,11 @@
 let tabsWithContentScript = new Set();
 let isExtensionEnabled = true;
 
+function handleExtensionStateChange(isEnabled) {
+  isExtensionEnabled = isEnabled;
+  if (!isEnabled) unblockAllTabs();
+}
+
 function checkContentScript(tabId) {
   return new Promise((resolve) => {
     chrome.tabs.sendMessage(tabId, { action: "ping" }, (response) => {
@@ -9,38 +14,6 @@ function checkContentScript(tabId) {
       } else {
         tabsWithContentScript.add(tabId);
         resolve(true);
-      }
-    });
-  });
-}
-
-function handleExtensionStateChange(isEnabled) {
-  isExtensionEnabled = isEnabled;
-  if (!isEnabled) {
-    unblockAllTabs();
-  }
-}
-
-function unblockAllTabs() {
-  chrome.tabs.query({}, (tabs) => {
-    tabs.forEach((tab) => {
-      if (
-        tab &&
-        tab.url &&
-        tab.url.startsWith(chrome.runtime.getURL("./src/blocked.html"))
-      ) {
-        chrome.tabs.sendMessage(
-          tab.id,
-          { action: "updateExtensionState", isEnabled: false },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              console.log(
-                "Error sending message to tab:",
-                chrome.runtime.lastError
-              );
-            }
-          }
-        );
       }
     });
   });
@@ -70,9 +43,8 @@ async function handleStartInspection() {
 
 function handleCancelInspection() {
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    if (tabs[0] && tabsWithContentScript.has(tabs[0].id)) {
+    if (tabs[0] && tabsWithContentScript.has(tabs[0].id))
       chrome.tabs.sendMessage(tabs[0].id, { action: "cancelInspection" });
-    }
   });
 }
 
@@ -89,6 +61,31 @@ function handleElementRemoved(request, sender) {
   });
 }
 
+function unblockAllTabs() {
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach((tab) => {
+      if (
+        tab &&
+        tab.url &&
+        tab.url.startsWith(chrome.runtime.getURL("./src/blocked.html"))
+      ) {
+        chrome.tabs.sendMessage(
+          tab.id,
+          { action: "updateExtensionState", isEnabled: false },
+          () => {
+            if (chrome.runtime.lastError) {
+              console.log(
+                "Error sending message to tab:",
+                chrome.runtime.lastError
+              );
+            }
+          }
+        );
+      }
+    });
+  });
+}
+
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete") {
     checkContentScript(tabId);
@@ -99,7 +96,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   tabsWithContentScript.delete(tabId);
 });
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender) => {
   switch (request.action) {
     case "startInspection":
       handleStartInspection();
