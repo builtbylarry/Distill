@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const blockedList = document.getElementById("blocked-list");
   const websiteSearch = document.getElementById("website-search");
   const extensionToggle = document.getElementById("extension-toggle");
+  const disabledMessage = document.getElementById("disabled-text");
   let isInspecting = false;
 
   function showTab(tabContent) {
@@ -27,13 +28,24 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function updateInspectionState() {
-    if (isInspecting) {
-      inspectButton.classList.add("hidden");
-      cancelButton.classList.remove("hidden");
-    } else {
-      inspectButton.classList.remove("hidden");
-      cancelButton.classList.add("hidden");
-    }
+    chrome.storage.local.get({ extensionEnabled: true }, function (result) {
+      const isEnabled = result.extensionEnabled;
+
+      if (isInspecting) {
+        inspectButton.style.display = "none";
+        cancelButton.style.display = "block";
+        disabledMessage.style.display = "none";
+      } else {
+        cancelButton.style.display = "none";
+        if (isEnabled) {
+          inspectButton.style.display = "block";
+          disabledMessage.style.display = "none";
+        } else {
+          inspectButton.style.display = "none";
+          disabledMessage.style.display = "block";
+        }
+      }
+    });
   }
 
   function updateDeletedList(searchTerm = "") {
@@ -177,6 +189,8 @@ document.addEventListener("DOMContentLoaded", function () {
           });
         });
       });
+
+      updateInspectionState();
     });
   });
 
@@ -272,10 +286,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   chrome.storage.local.get({ extensionEnabled: true }, function (result) {
     extensionToggle.checked = result.extensionEnabled;
+    updateInspectionState(result.extensionEnabled);
   });
 
   showTab(mainContent);
   updateBlockedList();
   updateDeletedList();
-  updateInspectionState();
 });
