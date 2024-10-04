@@ -24,11 +24,23 @@ function handleExtensionStateChange(isEnabled) {
 function unblockAllTabs() {
   chrome.tabs.query({}, (tabs) => {
     tabs.forEach((tab) => {
-      if (tab.url.startsWith(chrome.runtime.getURL("./src/blocked.html"))) {
-        chrome.tabs.sendMessage(tab.id, {
-          action: "updateExtensionState",
-          isEnabled: false,
-        });
+      if (
+        tab &&
+        tab.url &&
+        tab.url.startsWith(chrome.runtime.getURL("./src/blocked.html"))
+      ) {
+        chrome.tabs.sendMessage(
+          tab.id,
+          { action: "updateExtensionState", isEnabled: false },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.log(
+                "Error sending message to tab:",
+                chrome.runtime.lastError
+              );
+            }
+          }
+        );
       }
     });
   });
@@ -104,7 +116,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-chrome.webNavigation.onBeforeNavigate.addListener((details) => {
+chrome.webNavigation.onDOMContentLoaded.addListener((details) => {
   chrome.storage.local.get(
     { blockedWebsites: [], extensionEnabled: true },
     function (result) {

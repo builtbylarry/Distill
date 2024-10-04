@@ -127,27 +127,31 @@ function getXPath(element) {
   }
 }
 
+function hideElement(elementInfo) {
+  let element;
+  if (elementInfo.id) {
+    element = document.getElementById(elementInfo.id);
+  } else if (elementInfo.xpath) {
+    element = document.evaluate(
+      elementInfo.xpath,
+      document,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null
+    ).singleNodeValue;
+  }
+  if (element) {
+    element.style.display = "none";
+  }
+}
+
 function hideStoredElements() {
   if (!isExtensionEnabled) return;
 
   chrome.storage.local.get({ removedElements: {} }, function (result) {
     let removedElements = result.removedElements[window.location.href] || [];
     removedElements.forEach(function (elementInfo) {
-      let element;
-      if (elementInfo.id) {
-        element = document.getElementById(elementInfo.id);
-      } else if (elementInfo.xpath) {
-        element = document.evaluate(
-          elementInfo.xpath,
-          document,
-          null,
-          XPathResult.FIRST_ORDERED_NODE_TYPE,
-          null
-        ).singleNodeValue;
-      }
-      if (element) {
-        element.style.display = "none";
-      }
+      hideElement(elementInfo);
     });
   });
 }
@@ -201,6 +205,17 @@ function restoreElement(elementInfo) {
   }
 }
 
+function observePageChanges() {
+  const observer = new MutationObserver((mutations) => {
+    hideStoredElements();
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+}
+
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "ping") {
     sendResponse({ status: "ready" });
@@ -226,5 +241,12 @@ chrome.storage.local.get({ extensionEnabled: true }, function (result) {
   isExtensionEnabled = result.extensionEnabled;
   if (isExtensionEnabled) {
     hideStoredElements();
+    observePageChanges();
   }
 });
+
+if (document.readyState === "complete") {
+  hideStoredElements();
+} else {
+  window.addEventListener("load", hideStoredElements);
+}
