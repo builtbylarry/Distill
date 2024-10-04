@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Distill: Focus Extension",
   "version": "1.0.0",
-  "description": "Block distracting websites or specific content to create a focused, distraction-free browsing experience.",
+  "description": "Create a focused web experience by blocking distracting websites and content.",
   "icons": {
     "16": "./assets/images/logo_16x.png",
     "48": "./assets/images/logo_48x.png",
@@ -11,7 +11,7 @@
   "action": {
     "default_popup": "./src/popup.html"
   },
-  "permissions": ["activeTab", "storage", "webNavigation"],
+  "permissions": ["storage", "webNavigation"],
   "background": {
     "service_worker": "./src/background.js",
     "type": "module"
@@ -22,6 +22,5 @@
       "js": ["./src/content.js"],
       "run_at": "document_idle"
     }
-  ],
-  "host_permissions": ["<all_urls>"]
+  ]
 }
