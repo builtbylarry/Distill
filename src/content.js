@@ -2,6 +2,7 @@ let isExtensionEnabled = true;
 let isInspecting = false;
 let overlay;
 let highlightedElement;
+let removedElementsSelectors = [];
 
 function stopInspection() {
   if (isInspecting) {
@@ -12,7 +13,7 @@ function stopInspection() {
       highlightedElement = null;
     }
     document.removeEventListener("mousemove", handleMouseMove);
-    document.removeEventListener("click", handleClick);
+    document.removeEventListener("click", handleClick, true);
     document.removeEventListener("keydown", handleKeyDown);
     chrome.runtime.sendMessage({ action: "inspectionCanceled" });
   }
@@ -23,7 +24,7 @@ function startInspection() {
     isInspecting = true;
     createOverlay();
     document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("click", handleClick);
+    document.addEventListener("click", handleClick, true);
     document.addEventListener("keydown", handleKeyDown);
     chrome.runtime.sendMessage({ action: "inspectionStarted" });
   }
@@ -127,22 +128,98 @@ function getXPath(element) {
   }
 }
 
+function observeForElement(elementInfo) {
+  const observer = new MutationObserver((mutations, obs) => {
+    let element;
+    if (elementInfo.id) {
+      element = document.getElementById(elementInfo.id);
+    } else if (elementInfo.xpath) {
+      element = document.evaluate(
+        elementInfo.xpath,
+        document,
+        null,
+        XPathResult.FIRST_ORDERED_NODE_TYPE,
+        null
+      ).singleNodeValue;
+    }
+
+    if (element) {
+      element.style.display = "none";
+      obs.disconnect();
+    }
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+}
+
+function getUniqueSelector(element) {
+  if (element.id) return "#" + element.id;
+  if (element.hasAttribute("data-testid"))
+    return `[data-testid="${element.getAttribute("data-testid")}"]`;
+
+  let path = [];
+  while (element.nodeType === Node.ELEMENT_NODE) {
+    let selector = element.nodeName.toLowerCase();
+    if (element.className) {
+      selector += "." + element.className.replace(/\s+/g, ".");
+    }
+    path.unshift(selector);
+    element = element.parentNode;
+  }
+  return path.join(" > ");
+}
+
 function hideElement(elementInfo) {
-  let element;
+  let selector;
   if (elementInfo.id) {
-    element = document.getElementById(elementInfo.id);
-  } else if (elementInfo.xpath) {
-    element = document.evaluate(
-      elementInfo.xpath,
-      document,
-      null,
-      XPathResult.FIRST_ORDERED_NODE_TYPE,
-      null
-    ).singleNodeValue;
+    selector = `#${elementInfo.id}`;
+  } else if (elementInfo.classes && elementInfo.classes.length) {
+    selector =
+      elementInfo.tagName.toLowerCase() + "." + elementInfo.classes.join(".");
+  } else {
+    selector = elementInfo.xpath; // Fallback to XPath if no better option
   }
-  if (element) {
-    element.style.display = "none";
+
+  if (!removedElementsSelectors.includes(selector)) {
+    removedElementsSelectors.push(selector);
   }
+
+  applyStyles();
+}
+
+function applyStyles() {
+  let style = document.getElementById("distill-styles");
+  if (!style) {
+    style = document.createElement("style");
+    style.id = "distill-styles";
+    document.head.appendChild(style);
+  }
+
+  style.textContent = removedElementsSelectors
+    .map((selector) => `${selector} { display: none !important; }`)
+    .join("\n");
+}
+
+function handleClick(event) {
+  if (!isInspecting) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const selectedElement = event.target;
+  const elementInfo = {
+    tagName: selectedElement.tagName,
+    id: selectedElement.id,
+    classes: Array.from(selectedElement.classList),
+    xpath: getUniqueSelector(selectedElement),
+  };
+
+  hideElement(elementInfo);
+  chrome.runtime.sendMessage({ action: "elementRemoved", data: elementInfo });
+  stopInspection();
 }
 
 function hideStoredElements() {
@@ -207,7 +284,7 @@ function restoreElement(elementInfo) {
 
 function observePageChanges() {
   const observer = new MutationObserver((mutations) => {
-    hideStoredElements();
+    applyStyles();
   });
 
   observer.observe(document.body, {
@@ -237,16 +314,34 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   return true;
 });
 
-chrome.storage.local.get({ extensionEnabled: true }, function (result) {
-  isExtensionEnabled = result.extensionEnabled;
-  if (isExtensionEnabled) {
-    hideStoredElements();
-    observePageChanges();
+chrome.storage.local.get(
+  { extensionEnabled: true, removedElements: {} },
+  function (result) {
+    isExtensionEnabled = result.extensionEnabled;
+    if (isExtensionEnabled) {
+      hideStoredElements();
+      observePageChanges();
+    }
   }
-});
+);
 
 if (document.readyState === "complete") {
   hideStoredElements();
+  observePageChanges();
 } else {
-  window.addEventListener("load", hideStoredElements);
+  window.addEventListener("load", () => {
+    hideStoredElements();
+    observePageChanges();
+  });
+}
+
+function observePageChanges() {
+  const observer = new MutationObserver((mutations) => {
+    hideStoredElements();
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
 }
