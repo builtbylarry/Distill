@@ -1,8 +1,8 @@
 let isExtensionEnabled = true;
 let isInspecting = false;
-let overlay;
-let highlightedElement;
-let removedElementsSelectors = [];
+let overlay: any;
+let highlightedElement: any;
+let removedElementsSelectors: any[] = [];
 
 function stopInspection() {
   if (isInspecting) {
@@ -48,7 +48,7 @@ function removeOverlay() {
   overlay = null;
 }
 
-function handleMouseMove(event) {
+function handleMouseMove(event: any) {
   if (!isInspecting) return;
 
   const target = event.target;
@@ -74,7 +74,7 @@ function handleMouseMove(event) {
   )`;
 }
 
-function handleClick(event) {
+function handleClick(event: any) {
   if (!isInspecting) return;
 
   event.preventDefault();
@@ -95,11 +95,11 @@ function handleClick(event) {
   stopInspection();
 }
 
-function handleKeyDown(event) {
+function handleKeyDown(event: any) {
   if (event.key === "Escape") stopInspection();
 }
 
-function getXPath(element) {
+function getXPath(element: any): any {
   if (element.id !== "") return 'id("' + element.id + '")';
   if (element === document.body) return element.tagName;
 
@@ -120,52 +120,7 @@ function getXPath(element) {
   }
 }
 
-function observeForElement(elementInfo) {
-  const observer = new MutationObserver((mutations, obs) => {
-    let element;
-    if (elementInfo.id) {
-      element = document.getElementById(elementInfo.id);
-    } else if (elementInfo.xpath) {
-      element = document.evaluate(
-        elementInfo.xpath,
-        document,
-        null,
-        XPathResult.FIRST_ORDERED_NODE_TYPE,
-        null
-      ).singleNodeValue;
-    }
-
-    if (element) {
-      element.style.display = "none";
-      obs.disconnect();
-    }
-  });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
-}
-
-function getUniqueSelector(element) {
-  if (element.id) return "#" + element.id;
-  if (element.hasAttribute("data-testid"))
-    return `[data-testid="${element.getAttribute("data-testid")}"]`;
-
-  let path = [];
-
-  while (element.nodeType === Node.ELEMENT_NODE) {
-    let selector = element.nodeName.toLowerCase();
-    if (element.className)
-      selector += "." + element.className.replace(/\s+/g, ".");
-    path.unshift(selector);
-    element = element.parentNode;
-  }
-
-  return path.join(" > ");
-}
-
-function hideElement(elementInfo) {
+function hideElement(elementInfo: any) {
   let selector;
   if (elementInfo.id) {
     selector = `#${elementInfo.id}`;
@@ -195,31 +150,12 @@ function applyStyles() {
     .join("\n");
 }
 
-function handleClick(event) {
-  if (!isInspecting) return;
-
-  event.preventDefault();
-  event.stopPropagation();
-
-  const selectedElement = event.target;
-  const elementInfo = {
-    tagName: selectedElement.tagName,
-    id: selectedElement.id,
-    classes: Array.from(selectedElement.classList),
-    xpath: getUniqueSelector(selectedElement),
-  };
-
-  hideElement(elementInfo);
-  chrome.runtime.sendMessage({ action: "elementRemoved", data: elementInfo });
-  stopInspection();
-}
-
 function hideStoredElements() {
   if (!isExtensionEnabled) return;
 
   chrome.storage.local.get({ removedElements: {} }, function (result) {
     let removedElements = result.removedElements[window.location.href] || [];
-    removedElements.forEach(function (elementInfo) {
+    removedElements.forEach(function (elementInfo: any) {
       hideElement(elementInfo);
     });
   });
@@ -228,14 +164,14 @@ function hideStoredElements() {
 function restoreAllElements() {
   chrome.storage.local.get({ removedElements: {} }, function (result) {
     let removedElements = result.removedElements[window.location.href] || [];
-    removedElements.forEach(function (elementInfo) {
+    removedElements.forEach(function (elementInfo: any) {
       restoreElement(elementInfo);
     });
   });
 }
 
-function restoreElement(elementInfo) {
-  let element;
+function restoreElement(elementInfo: any) {
+  let element: HTMLElement | Node | null = null;
   if (elementInfo.id) {
     element = document.getElementById(elementInfo.id);
   } else if (elementInfo.xpath) {
@@ -248,11 +184,12 @@ function restoreElement(elementInfo) {
     ).singleNodeValue;
   }
 
-  if (element) {
+  if (element && element instanceof HTMLElement) {
     element.style.display = "";
   } else {
     // If the element doesn't exist, create a new one
-    element = document.createElement(elementInfo.tagName);
+    element = document.createElement(elementInfo.tagName) as HTMLElement;
+    if(!element || !(element instanceof HTMLElement)) return
     if (elementInfo.id) element.id = elementInfo.id;
     element.className = elementInfo.classes.join(" ");
     element.innerHTML = elementInfo.innerHTML;
@@ -275,7 +212,7 @@ function restoreElement(elementInfo) {
 }
 
 function observePageChanges() {
-  const observer = new MutationObserver((mutations) => {
+  const observer = new MutationObserver(() => {
     applyStyles();
   });
 
@@ -285,18 +222,7 @@ function observePageChanges() {
   });
 }
 
-function observePageChanges() {
-  const observer = new MutationObserver((mutations) => {
-    hideStoredElements();
-  });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
-}
-
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener(function (request, _, sendResponse) {
   switch (request.action) {
     case "ping":
       sendResponse({ status: "ready" });

@@ -1,14 +1,12 @@
 let tabsWithContentScript = new Set();
-let isExtensionEnabled = true;
 
-function handleExtensionStateChange(isEnabled) {
-  isExtensionEnabled = isEnabled;
+function handleExtensionStateChange(isEnabled: any) {
   if (!isEnabled) unblockAllTabs();
 }
 
-function checkContentScript(tabId) {
+function checkContentScript(tabId: any) {
   return new Promise((resolve) => {
-    chrome.tabs.sendMessage(tabId, { action: "ping" }, (response) => {
+    chrome.tabs.sendMessage(tabId, { action: "ping" }, () => {
       if (chrome.runtime.lastError) {
         resolve(false);
       } else {
@@ -30,7 +28,7 @@ async function handleStartInspection() {
     }
 
     const isContentScriptReady = await checkContentScript(tab.id);
-    if (isContentScriptReady) {
+    if (isContentScriptReady && tab.id) {
       chrome.tabs.sendMessage(tab.id, { action: "startInspection" });
     } else {
       chrome.runtime.sendMessage({ action: "contentScriptNotReady" });
@@ -43,12 +41,12 @@ async function handleStartInspection() {
 
 function handleCancelInspection() {
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    if (tabs[0] && tabsWithContentScript.has(tabs[0].id))
+    if (tabs[0] && tabsWithContentScript.has(tabs[0].id) && tabs[0].id)
       chrome.tabs.sendMessage(tabs[0].id, { action: "cancelInspection" });
   });
 }
 
-function handleElementRemoved(request, sender) {
+function handleElementRemoved(request: any, sender: any) {
   chrome.runtime.sendMessage(request);
 
   chrome.storage.local.get({ removedElements: {} }, function (result) {
@@ -67,7 +65,8 @@ function unblockAllTabs() {
       if (
         tab &&
         tab.url &&
-        tab.url.startsWith(chrome.runtime.getURL("./src/blocked.html"))
+        tab.id &&
+        tab.url.startsWith(chrome.runtime.getURL("./blocked.html"))
       ) {
         chrome.tabs.sendMessage(
           tab.id,
@@ -86,7 +85,7 @@ function unblockAllTabs() {
   });
 }
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === "complete") {
     checkContentScript(tabId);
   }
@@ -127,17 +126,13 @@ chrome.webNavigation.onDOMContentLoaded.addListener((details) => {
         console.error("Invalid URL:", details.url);
         return;
       }
-      if (blockedWebsites.some((blocked) => url.hostname.includes(blocked))) {
+      if (blockedWebsites.some((blocked: any) => url.hostname.includes(blocked))) {
         chrome.tabs.update(details.tabId, {
           url: chrome.runtime.getURL(
-            `./src/blocked.html?originalUrl=${encodeURIComponent(details.url)}`
+            `./blocked.html?originalUrl=${encodeURIComponent(details.url)}`
           ),
         });
       }
     }
   );
-});
-
-chrome.storage.local.get({ extensionEnabled: true }, function (result) {
-  isExtensionEnabled = result.extensionEnabled;
 });
