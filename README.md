@@ -1,6 +1,6 @@
 <div align="center">
 
-[![Distill](./assets/images/logo_with_text.png)](https://github.com/LarryBaer/Distill)
+[![Distill](./public/assets/images/logo_with_text.png)](https://github.com/LarryBaer/Distill)
 
 </div>
 

@@ -9,7 +9,7 @@
     "128": "assets/images/logo_128x.png"
   },
   "action": {
-    "default_popup": "index.html"
+    "default_popup": "public/index.html"
   },
   "permissions": ["storage", "webNavigation"],
   "background": {

@@ -1,98 +1,89 @@
-let tabsWithContentScript = new Set();
+export interface Tab extends chrome.tabs.Tab {}
 
-function handleExtensionStateChange(isEnabled: any) {
-  if (!isEnabled) unblockAllTabs();
-}
+const tabsWithContentScript = new Set<number>();
 
-function checkContentScript(tabId: any) {
-  return new Promise((resolve) => {
-    chrome.tabs.sendMessage(tabId, { action: "ping" }, () => {
-      if (chrome.runtime.lastError) {
-        resolve(false);
-      } else {
-        tabsWithContentScript.add(tabId);
-        resolve(true);
-      }
-    });
-  });
-}
-
-async function handleStartInspection() {
+async function handleStartInspection(): Promise<void> {
   try {
     const [tab] = await chrome.tabs.query({
       active: true,
       currentWindow: true,
     });
-    if (!tab) {
-      throw new Error("No active tab found");
-    }
-
-    const isContentScriptReady = await checkContentScript(tab.id);
-    if (isContentScriptReady && tab.id) {
-      chrome.tabs.sendMessage(tab.id, { action: "startInspection" });
-    } else {
-      chrome.runtime.sendMessage({ action: "contentScriptNotReady" });
-    }
+    if (!tab?.id) throw new Error("No active tab found");
+    chrome.tabs.sendMessage(tab.id, { action: "startInspection" });
   } catch (error) {
     console.error("Error in handleStartInspection:", error);
     chrome.runtime.sendMessage({ action: "contentScriptNotReady" });
   }
 }
 
-function handleCancelInspection() {
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    if (tabs[0] && tabsWithContentScript.has(tabs[0].id) && tabs[0].id)
-      chrome.tabs.sendMessage(tabs[0].id, { action: "cancelInspection" });
-  });
+async function handleCancelInspection(): Promise<void> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id && tabsWithContentScript.has(tab.id)) {
+    chrome.tabs.sendMessage(tab.id, { action: "cancelInspection" });
+  }
 }
 
-function handleElementRemoved(request: any, sender: any) {
+function handleElementRemoved(
+  request: any,
+  sender: chrome.runtime.MessageSender
+): void {
   chrome.runtime.sendMessage(request);
 
-  chrome.storage.local.get({ removedElements: {} }, function (result) {
-    let removedElements = result.removedElements;
-    if (!removedElements[sender.tab.url]) {
-      removedElements[sender.tab.url] = [];
-    }
-    removedElements[sender.tab.url].push(request.data);
-    chrome.storage.local.set({ removedElements: removedElements });
-  });
-}
-
-function unblockAllTabs() {
-  chrome.tabs.query({}, (tabs) => {
-    tabs.forEach((tab) => {
-      if (
-        tab &&
-        tab.url &&
-        tab.id &&
-        tab.url.startsWith(chrome.runtime.getURL("./blocked.html"))
-      ) {
-        chrome.tabs.sendMessage(
-          tab.id,
-          { action: "updateExtensionState", isEnabled: false },
-          () => {
-            if (chrome.runtime.lastError) {
-              console.log(
-                "Error sending message to tab:",
-                chrome.runtime.lastError
-              );
-            }
-          }
-        );
+  chrome.storage.local.get({ removedElements: {} }, (result) => {
+    const removedElements = result.removedElements as Record<string, any[]>;
+    const url = sender.tab?.url;
+    if (url) {
+      if (!removedElements[url]) {
+        removedElements[url] = [];
       }
-    });
+      removedElements[url].push(request.data);
+      chrome.storage.local.set({ removedElements });
+    }
   });
 }
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-  if (changeInfo.status === "complete") {
-    checkContentScript(tabId);
-  }
-});
+async function unblockAllTabs(): Promise<void> {
+  const tabs = await chrome.tabs.query({});
+  tabs.forEach((tab) => {
+    if (
+      tab?.url?.startsWith(chrome.runtime.getURL("./blocked.html")) &&
+      tab.id
+    ) {
+      chrome.tabs
+        .sendMessage(tab.id, {
+          action: "updateExtensionState",
+          isEnabled: false,
+        })
+        .catch((error) => console.log("Error sending message to tab:", error));
+    }
+  });
+}
+
+function handleExtensionStateChange(isEnabled: boolean): void {
+  if (!isEnabled) unblockAllTabs();
+}
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   tabsWithContentScript.delete(tabId);
+});
+
+chrome.webNavigation.onDOMContentLoaded.addListener((details) => {
+  chrome.storage.local.get(
+    { blockedWebsites: [], extensionEnabled: true },
+    (result) => {
+      if (!result.extensionEnabled) return;
+
+      const blockedWebsites = result.blockedWebsites as string[];
+      const url = new URL(details.url);
+      if (blockedWebsites.some((blocked) => url.hostname.includes(blocked))) {
+        chrome.tabs.update(details.tabId, {
+          url: chrome.runtime.getURL(
+            `./blocked.html?originalUrl=${encodeURIComponent(details.url)}`
+          ),
+        });
+      }
+    }
+  );
 });
 
 chrome.runtime.onMessage.addListener((request, sender) => {
@@ -110,29 +101,4 @@ chrome.runtime.onMessage.addListener((request, sender) => {
       handleExtensionStateChange(request.isEnabled);
       break;
   }
-});
-
-chrome.webNavigation.onDOMContentLoaded.addListener((details) => {
-  chrome.storage.local.get(
-    { blockedWebsites: [], extensionEnabled: true },
-    function (result) {
-      if (!result.extensionEnabled) return;
-
-      let blockedWebsites = result.blockedWebsites;
-      let url;
-      try {
-        url = new URL(details.url);
-      } catch (e) {
-        console.error("Invalid URL:", details.url);
-        return;
-      }
-      if (blockedWebsites.some((blocked: any) => url.hostname.includes(blocked))) {
-        chrome.tabs.update(details.tabId, {
-          url: chrome.runtime.getURL(
-            `./blocked.html?originalUrl=${encodeURIComponent(details.url)}`
-          ),
-        });
-      }
-    }
-  );
 });

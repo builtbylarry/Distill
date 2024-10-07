@@ -1,87 +1,74 @@
+interface ElementInfo {
+  tagName: string;
+  id: string;
+  classes: string[];
+  xpath: string;
+  innerHTML: string;
+}
+
 let isExtensionEnabled = true;
 let isInspecting = false;
-let overlay: any;
-let highlightedElement: any;
-let removedElementsSelectors: any[] = [];
+let overlay: HTMLDivElement | null = null;
+let highlightedElement: HTMLElement | null = null;
+let removedElementsSelectors: string[] = [];
 
-function stopInspection() {
-  if (isInspecting) {
-    isInspecting = false;
-    removeOverlay();
-    if (highlightedElement) {
-      highlightedElement.style.outline = "";
-      highlightedElement = null;
-    }
-    document.removeEventListener("mousemove", handleMouseMove);
-    document.removeEventListener("click", handleClick, true);
-    document.removeEventListener("keydown", handleKeyDown);
-    chrome.runtime.sendMessage({ action: "inspectionCanceled" });
-  }
+function stopInspection(): void {
+  if (!isInspecting) return;
+
+  isInspecting = false;
+  removeOverlay();
+  resetHighlightedElement();
+  removeEventListeners();
+  chrome.runtime.sendMessage({ action: "inspectionCanceled" });
 }
 
-function startInspection() {
-  if (!isInspecting) {
-    isInspecting = true;
-    createOverlay();
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("click", handleClick, true);
-    document.addEventListener("keydown", handleKeyDown);
-    chrome.runtime.sendMessage({ action: "inspectionStarted" });
-  }
+function startInspection(): void {
+  if (isInspecting) return;
+
+  isInspecting = true;
+  createOverlay();
+  addEventListeners();
+  chrome.runtime.sendMessage({ action: "inspectionStarted" });
 }
 
-function createOverlay() {
+function createOverlay(): void {
   overlay = document.createElement("div");
-  overlay.style.position = "fixed";
-  overlay.style.top = "0";
-  overlay.style.left = "0";
-  overlay.style.width = "100%";
-  overlay.style.height = "100%";
-  overlay.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
-  overlay.style.zIndex = "2147483647"; // Max z-index
-  overlay.style.pointerEvents = "none";
+  Object.assign(overlay.style, {
+    position: "fixed",
+    top: "0",
+    left: "0",
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: "2147483647",
+    pointerEvents: "none",
+  });
   document.body.appendChild(overlay);
 }
 
-function removeOverlay() {
-  if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+function removeOverlay(): void {
+  overlay?.remove();
   overlay = null;
 }
 
-function handleMouseMove(event: any) {
+function handleMouseMove(event: MouseEvent): void {
   if (!isInspecting) return;
 
-  const target = event.target;
-  if (highlightedElement) highlightedElement.style.outline = "";
+  const target = event.target as HTMLElement;
+  resetHighlightedElement();
 
   highlightedElement = target;
-  highlightedElement.style.outline = "2px solid red";
-  highlightedElement.style.outlineOffset = "-2px";
-
-  const rect = target.getBoundingClientRect();
-  overlay.style.boxShadow = `0 0 0 100vmax rgba(0, 0, 0, 0.5)`;
-  overlay.style.clipPath = `polygon(
-    0% 0%,
-    0% 100%,
-    ${rect.left}px 100%,
-    ${rect.left}px ${rect.top}px,
-    ${rect.right}px ${rect.top}px,
-    ${rect.right}px ${rect.bottom}px,
-    ${rect.left}px ${rect.bottom}px,
-    ${rect.left}px 100%,
-    100% 100%,
-    100% 0%
-  )`;
+  highlightElement(highlightedElement);
+  updateOverlayClipPath(target);
 }
 
-function handleClick(event: any) {
+function handleClick(event: MouseEvent): void {
   if (!isInspecting) return;
 
   event.preventDefault();
   event.stopPropagation();
 
-  const selectedElement = event.target;
-
+  const selectedElement = event.target as HTMLElement;
   const elementInfo = {
     tagName: selectedElement.tagName,
     id: selectedElement.id,
@@ -95,134 +82,181 @@ function handleClick(event: any) {
   stopInspection();
 }
 
-function handleKeyDown(event: any) {
+function handleKeyDown(event: KeyboardEvent): void {
   if (event.key === "Escape") stopInspection();
 }
 
-function getXPath(element: any): any {
+function resetHighlightedElement(): void {
+  if (highlightedElement) {
+    highlightedElement.style.outline = "";
+    highlightedElement = null;
+  }
+}
+
+function highlightElement(element: HTMLElement): void {
+  element.style.outline = "2px solid red";
+  element.style.outlineOffset = "-2px";
+}
+
+function updateOverlayClipPath(target: HTMLElement): void {
+  if (!overlay) return;
+
+  const rect = target.getBoundingClientRect();
+  overlay.style.boxShadow = `0 0 0 100vmax rgba(0, 0, 0, 0.5)`;
+  overlay.style.clipPath = `polygon(
+      0% 0%,
+      0% 100%,
+      ${rect.left}px 100%,
+      ${rect.left}px ${rect.top}px,
+      ${rect.right}px ${rect.top}px,
+      ${rect.right}px ${rect.bottom}px,
+      ${rect.left}px ${rect.bottom}px,
+      ${rect.left}px 100%,
+      100% 100%,
+      100% 0%
+  )`;
+}
+
+function getXPath(element: HTMLElement): string {
   if (element.id !== "") return 'id("' + element.id + '")';
   if (element === document.body) return element.tagName;
 
   let ix = 0;
-  let siblings = element.parentNode.childNodes;
+  const siblings = element.parentNode?.childNodes || [];
   for (let i = 0; i < siblings.length; i++) {
-    let sibling = siblings[i];
+    const sibling = siblings[i] as HTMLElement;
     if (sibling === element)
-      return (
-        getXPath(element.parentNode) +
-        "/" +
-        element.tagName +
-        "[" +
-        (ix + 1) +
-        "]"
-      );
+      return `${getXPath(element.parentNode as HTMLElement)}/${
+        element.tagName
+      }[${ix + 1}]`;
     if (sibling.nodeType === 1 && sibling.tagName === element.tagName) ix++;
   }
+  return "";
 }
 
-function hideElement(elementInfo: any) {
-  let selector;
-  if (elementInfo.id) {
-    selector = `#${elementInfo.id}`;
-  } else if (elementInfo.classes && elementInfo.classes.length) {
-    selector =
-      elementInfo.tagName.toLowerCase() + "." + elementInfo.classes.join(".");
-  } else {
-    selector = elementInfo.xpath;
-  }
+function addEventListeners(): void {
+  document.addEventListener("mousemove", handleMouseMove);
+  document.addEventListener("click", handleClick, true);
+  document.addEventListener("keydown", handleKeyDown);
+}
 
-  if (!removedElementsSelectors.includes(selector))
+function removeEventListeners(): void {
+  document.removeEventListener("mousemove", handleMouseMove);
+  document.removeEventListener("click", handleClick, true);
+  document.removeEventListener("keydown", handleKeyDown);
+}
+
+function hideElement(elementInfo: ElementInfo): void {
+  const selector = getElementSelector(elementInfo);
+  if (!removedElementsSelectors.includes(selector)) {
     removedElementsSelectors.push(selector);
-
+  }
   applyStyles();
 }
 
-function applyStyles() {
-  let style = document.getElementById("distill-styles");
+function getElementSelector(elementInfo: ElementInfo): string {
+  if (elementInfo.id) return `#${elementInfo.id}`;
+  if (elementInfo.classes && elementInfo.classes.length) {
+    return `${elementInfo.tagName.toLowerCase()}.${elementInfo.classes.join(
+      "."
+    )}`;
+  }
+  return elementInfo.xpath;
+}
+
+function applyStyles(): void {
+  let style = document.getElementById("distill-styles") as HTMLStyleElement;
   if (!style) {
     style = document.createElement("style");
     style.id = "distill-styles";
     document.head.appendChild(style);
   }
-
   style.textContent = removedElementsSelectors
     .map((selector) => `${selector} { display: none !important; }`)
     .join("\n");
 }
 
-function hideStoredElements() {
+function hideStoredElements(): void {
   if (!isExtensionEnabled) return;
 
-  chrome.storage.local.get({ removedElements: {} }, function (result) {
-    let removedElements = result.removedElements[window.location.href] || [];
-    removedElements.forEach(function (elementInfo: any) {
-      hideElement(elementInfo);
-    });
+  chrome.storage.local.get({ removedElements: {} }, (result) => {
+    const removedElements = result.removedElements[window.location.href] || [];
+    removedElements.forEach(hideElement);
   });
 }
 
-function restoreAllElements() {
-  chrome.storage.local.get({ removedElements: {} }, function (result) {
-    let removedElements = result.removedElements[window.location.href] || [];
-    removedElements.forEach(function (elementInfo: any) {
-      restoreElement(elementInfo);
-    });
+function restoreAllElements(): void {
+  chrome.storage.local.get({ removedElements: {} }, (result) => {
+    const removedElements = result.removedElements[window.location.href] || [];
+    removedElements.forEach(restoreElement);
   });
 }
 
-function restoreElement(elementInfo: any) {
-  let element: HTMLElement | Node | null = null;
-  if (elementInfo.id) {
-    element = document.getElementById(elementInfo.id);
-  } else if (elementInfo.xpath) {
-    element = document.evaluate(
+function restoreElement(elementInfo: ElementInfo): void {
+  let element = findElement(elementInfo);
+
+  if (element instanceof HTMLElement) {
+    element.style.display = "";
+  } else {
+    element = createNewElement(elementInfo);
+    insertElement(element, elementInfo);
+  }
+}
+
+function findElement(elementInfo: ElementInfo): HTMLElement | null {
+  if (elementInfo.id) return document.getElementById(elementInfo.id);
+  if (elementInfo.xpath) {
+    return document.evaluate(
       elementInfo.xpath,
       document,
       null,
       XPathResult.FIRST_ORDERED_NODE_TYPE,
       null
-    ).singleNodeValue;
+    ).singleNodeValue as HTMLElement | null;
   }
+  return null;
+}
 
-  if (element && element instanceof HTMLElement) {
-    element.style.display = "";
+function createNewElement(elementInfo: ElementInfo): HTMLElement {
+  const element = document.createElement(elementInfo.tagName);
+  if (elementInfo.id) element.id = elementInfo.id;
+  element.className = elementInfo.classes.join(" ");
+  element.innerHTML = elementInfo.innerHTML;
+  return element;
+}
+
+function insertElement(element: HTMLElement, elementInfo: ElementInfo): void {
+  const parent = findParentElement(elementInfo);
+  if (parent) {
+    parent.appendChild(element);
   } else {
-    // If the element doesn't exist, create a new one
-    element = document.createElement(elementInfo.tagName) as HTMLElement;
-    if(!element || !(element instanceof HTMLElement)) return
-    if (elementInfo.id) element.id = elementInfo.id;
-    element.className = elementInfo.classes.join(" ");
-    element.innerHTML = elementInfo.innerHTML;
-
-    // Try to insert the element at its original position using XPath
-    let parent = document.evaluate(
-      elementInfo.xpath.substring(0, elementInfo.xpath.lastIndexOf("/")),
-      document,
-      null,
-      XPathResult.FIRST_ORDERED_NODE_TYPE,
-      null
-    ).singleNodeValue;
-    if (parent) {
-      parent.appendChild(element);
-    } else {
-      // If we can't find the original parent, append to body
-      document.body.appendChild(element);
-    }
+    document.body.appendChild(element);
   }
 }
 
-function observePageChanges() {
-  const observer = new MutationObserver(() => {
-    applyStyles();
-  });
+function findParentElement(elementInfo: ElementInfo): HTMLElement | null {
+  const parentXPath = elementInfo.xpath.substring(
+    0,
+    elementInfo.xpath.lastIndexOf("/")
+  );
+  return document.evaluate(
+    parentXPath,
+    document,
+    null,
+    XPathResult.FIRST_ORDERED_NODE_TYPE,
+    null
+  ).singleNodeValue as HTMLElement | null;
+}
 
+function observePageChanges(): void {
+  const observer = new MutationObserver(applyStyles);
   observer.observe(document.body, {
     childList: true,
     subtree: true,
   });
 }
 
-chrome.runtime.onMessage.addListener(function (request, _, sendResponse) {
+chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
   switch (request.action) {
     case "ping":
       sendResponse({ status: "ready" });
@@ -249,7 +283,7 @@ chrome.runtime.onMessage.addListener(function (request, _, sendResponse) {
 
 chrome.storage.local.get(
   { extensionEnabled: true, removedElements: {} },
-  function (result) {
+  (result) => {
     isExtensionEnabled = result.extensionEnabled;
     if (isExtensionEnabled) {
       hideStoredElements();

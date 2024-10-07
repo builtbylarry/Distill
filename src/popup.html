@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Distill</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body id="body">
+    <div id="navbar" class="navbar">
+      <div class="left">
+        <img src="../assets/icons/logo.svg" class="logo" />
+      </div>
+      <div class="right">
+        <div class="tabs-container">
+          <ul class="tabs">
+            <li class="tab">
+              <a href="#" id="main-tab" class="selected-tab tab-link">Main</a>
+            </li>
+            <li class="tab">
+              <a href="#" id="list-tab">Elements</a>
+            </li>
+            <li class="tab">
+              <a href="#" id="block-tab">Websites</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="toggle-container">
+        <label class="toggle-switch">
+          <input type="checkbox" id="extension-toggle" checked />
+          <span class="slider round"></span>
+        </label>
+      </div>
+    </div>
+    <hr id="hr" />
+    <div id="main-content" class="main-content">
+      <p id="disabled-text" class="disabled-text">
+        Distill is currently disabled.
+        <br />
+        Please re-enable the extension to block new elements.
+      </p>
+      <button id="inspect-button" class="inspect-button">Remove Element</button>
+      <button id="cancel-button" class="cancel-button">Cancel</button>
+    </div>
+    <div id="list-content" class="list-content">
+      <input
+        type="text"
+        id="website-search"
+        placeholder="Search websites..."
+        class="input"
+      />
+      <div id="deleted-list" class="removed-elements-list-container"></div>
+    </div>
+    <div id="block-content" class="blocked-content">
+      <div class="input-website-container">
+        <input
+          type="text"
+          id="website-input"
+          class="input website-input"
+          placeholder="Enter website URL"
+        />
+        <button id="block-button" class="block-button">Block</button>
+      </div>
+      <div id="blocked-list" class="blocked-websites-list"></div>
+    </div>
+  </body>
+</html>
