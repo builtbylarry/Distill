@@ -1,5 +1,3 @@
-export interface Tab extends chrome.tabs.Tab {}
-
 const tabsWithContentScript = new Set<number>();
 
 async function handleStartInspection(): Promise<void> {
@@ -30,13 +28,18 @@ function handleElementRemoved(
   chrome.runtime.sendMessage(request);
 
   chrome.storage.local.get({ removedElements: {} }, (result) => {
-    const removedElements = result.removedElements as Record<string, any[]>;
+    const removedElements = result.removedElements as RemovedElements;
     const url = sender.tab?.url;
     if (url) {
-      if (!removedElements[url]) {
-        removedElements[url] = [];
+      const hostname = new URL(url).hostname;
+      if (!removedElements[hostname]) {
+        removedElements[hostname] = [];
       }
-      removedElements[url].push(request.data);
+      const removedElement: RemovedElement = {
+        ...request.data,
+        url: url,
+      };
+      removedElements[hostname].push(removedElement);
       chrome.storage.local.set({ removedElements });
     }
   });

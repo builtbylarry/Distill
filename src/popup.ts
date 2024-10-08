@@ -1,18 +1,6 @@
 import PopupPage from "./popup.html?raw";
 import "./popup.css";
 
-type ElementId = keyof typeof elementIds;
-type Elements = Record<ElementId, HTMLElement | null>;
-
-interface RemovedElement {
-  tagName: string;
-  classes: string[];
-}
-
-interface RemovedElements {
-  [url: string]: RemovedElement[];
-}
-
 const elementIds = {
   mainTab: "main-tab",
   listTab: "list-tab",
@@ -198,7 +186,7 @@ function updateDeletedList(searchTerm = ""): void {
 
     const filteredElements = filterRemovedElements(removedElements, searchTerm);
 
-    if (filteredElements.length === 0) {
+    if (Object.keys(filteredElements).length === 0) {
       displayNoResultsMessage(searchTerm);
       return;
     }
@@ -210,11 +198,20 @@ function updateDeletedList(searchTerm = ""): void {
 function filterRemovedElements(
   removedElements: RemovedElements,
   searchTerm: string
-): [string, RemovedElement[]][] {
-  return Object.entries(removedElements).filter(
-    ([url]) =>
-      !searchTerm || url.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+): RemovedElements {
+  const filteredElements: RemovedElements = {};
+  Object.entries(removedElements).forEach(([hostname, elements]) => {
+    const filteredHostElements = elements.filter(
+      (el) =>
+        !searchTerm ||
+        hostname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        el.url.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    if (filteredHostElements.length > 0) {
+      filteredElements[hostname] = filteredHostElements;
+    }
+  });
+  return filteredElements;
 }
 
 function displayNoResultsMessage(searchTerm: string): void {
@@ -225,44 +222,38 @@ function displayNoResultsMessage(searchTerm: string): void {
   }
 }
 
-function displayFilteredElements(
-  filteredElements: [string, RemovedElement[]][]
-): void {
-  filteredElements.forEach(([url, removedEls]) => {
-    const urlDiv = createUrlDiv(url, removedEls);
-    elements.deletedList?.appendChild(urlDiv);
+function displayFilteredElements(filteredElements: RemovedElements): void {
+  Object.entries(filteredElements).forEach(([hostname, removedEls]) => {
+    const hostnameDiv = createHostnameDiv(hostname, removedEls);
+    elements.deletedList?.appendChild(hostnameDiv);
   });
 
   addRestoreButtonListeners();
 }
 
-function createUrlDiv(
-  url: string,
+function createHostnameDiv(
+  hostname: string,
   removedEls: RemovedElement[]
 ): HTMLDivElement {
-  const urlDiv = document.createElement("div");
-  urlDiv.innerHTML = `
-    <h3 class="removed-elements-website-name">${new URL(url).hostname}</h3>
+  const hostnameDiv = document.createElement("div");
+  hostnameDiv.innerHTML = `
+    <h3 class="removed-elements-website-name">${hostname}</h3>
     <div class="removed-elements-list">
       ${removedEls
-        .map((el, index) => createRemovedElementHTML(url, el, index))
+        .map((el, index) => createRemovedElementHTML(el, index))
         .join("")}
     </div>
   `;
-  return urlDiv;
+  return hostnameDiv;
 }
 
-function createRemovedElementHTML(
-  url: string,
-  el: RemovedElement,
-  index: number
-): string {
+function createRemovedElementHTML(el: RemovedElement, index: number): string {
   return `
     <div class="removed-element-container">
       <div class="removed-element-name">
         ${el.tagName}${el.classes.length ? `.${el.classes.join(".")}` : ""}
       </div>
-      <button class="restore-button" data-url="${url}" data-index="${index}">
+      <button class="restore-button" data-url="${el.url}" data-index="${index}">
         <img src="../assets/icons/trash-solid.svg" alt="Restore" class="trash-icon">
       </button>
     </div>
@@ -283,9 +274,11 @@ function addRestoreButtonListeners(): void {
 function restoreElement(url: string, index: number): void {
   chrome.storage.local.get({ removedElements: {} }, (result) => {
     const removedElements: RemovedElements = result.removedElements;
-    if (removedElements[url] && removedElements[url][index]) {
-      const restoredElement = removedElements[url].splice(index, 1)[0];
-      if (removedElements[url].length === 0) delete removedElements[url];
+    const hostname = new URL(url).hostname;
+    if (removedElements[hostname] && removedElements[hostname][index]) {
+      const restoredElement = removedElements[hostname].splice(index, 1)[0];
+      if (removedElements[hostname].length === 0)
+        delete removedElements[hostname];
 
       chrome.storage.local.set({ removedElements }, () => {
         updateDeletedList(

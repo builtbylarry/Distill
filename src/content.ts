@@ -1,11 +1,3 @@
-interface ElementInfo {
-  tagName: string;
-  id: string;
-  classes: string[];
-  xpath: string;
-  innerHTML: string;
-}
-
 let isExtensionEnabled = true;
 let isInspecting = false;
 let overlay: HTMLDivElement | null = null;
@@ -69,12 +61,13 @@ function handleClick(event: MouseEvent): void {
   event.stopPropagation();
 
   const selectedElement = event.target as HTMLElement;
-  const elementInfo = {
+  const elementInfo: ElementInfo = {
     tagName: selectedElement.tagName,
     id: selectedElement.id,
     classes: Array.from(selectedElement.classList),
     xpath: getXPath(selectedElement),
     innerHTML: selectedElement.innerHTML,
+    url: window.location.href,
   };
 
   selectedElement.remove();
@@ -180,15 +173,21 @@ function hideStoredElements(): void {
   if (!isExtensionEnabled) return;
 
   chrome.storage.local.get({ removedElements: {} }, (result) => {
-    const removedElements = result.removedElements[window.location.href] || [];
-    removedElements.forEach(hideElement);
+    const currentHostname = new URL(window.location.href).hostname;
+    const removedElements = result.removedElements[currentHostname] || [];
+    removedElements.forEach((element: ElementInfo) => {
+      hideElement(element);
+    });
   });
 }
 
 function restoreAllElements(): void {
   chrome.storage.local.get({ removedElements: {} }, (result) => {
-    const removedElements = result.removedElements[window.location.href] || [];
-    removedElements.forEach(restoreElement);
+    const currentHostname = new URL(window.location.href).hostname;
+    const removedElements = result.removedElements[currentHostname] || [];
+    removedElements.forEach((element: ElementInfo) => {
+      restoreElement(element);
+    });
   });
 }
 
@@ -201,6 +200,13 @@ function restoreElement(elementInfo: ElementInfo): void {
     element = createNewElement(elementInfo);
     insertElement(element, elementInfo);
   }
+
+  const selector = getElementSelector(elementInfo);
+  const index = removedElementsSelectors.indexOf(selector);
+  if (index > -1) {
+    removedElementsSelectors.splice(index, 1);
+  }
+  applyStyles();
 }
 
 function findElement(elementInfo: ElementInfo): HTMLElement | null {
