@@ -106,20 +106,7 @@ function toggleExtension(): void {
     elements.extensionToggle.checked;
   chrome.storage.local.set({ extensionEnabled: isEnabled }, () => {
     chrome.runtime.sendMessage({ action: "updateExtensionState", isEnabled });
-    updateTabsExtensionState(isEnabled);
     updateInspectionState();
-  });
-}
-
-function updateTabsExtensionState(isEnabled: boolean): void {
-  chrome.tabs.query({}, (tabs) => {
-    tabs.forEach((tab) => {
-      if (tab.id)
-        chrome.tabs.sendMessage(tab.id, {
-          action: "updateExtensionState",
-          isEnabled,
-        });
-    });
   });
 }
 

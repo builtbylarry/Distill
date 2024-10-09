@@ -4,6 +4,13 @@ let overlay: HTMLDivElement | null = null;
 let highlightedElement: HTMLElement | null = null;
 let removedElementsSelectors: string[] = [];
 
+function startInspection(): void {
+  if (isInspecting) return;
+  isInspecting = true;
+  createOverlay();
+  addEventListeners();
+}
+
 function stopInspection(): void {
   if (!isInspecting) return;
 
@@ -12,15 +19,6 @@ function stopInspection(): void {
   resetHighlightedElement();
   removeEventListeners();
   chrome.runtime.sendMessage({ action: "inspectionCanceled" });
-}
-
-function startInspection(): void {
-  if (isInspecting) return;
-
-  isInspecting = true;
-  createOverlay();
-  addEventListeners();
-  chrome.runtime.sendMessage({ action: "inspectionStarted" });
 }
 
 function createOverlay(): void {
@@ -87,8 +85,8 @@ function resetHighlightedElement(): void {
 }
 
 function highlightElement(element: HTMLElement): void {
-  element.style.outline = "2px solid red";
-  element.style.outlineOffset = "-2px";
+  element.style.outline = "3px solid #5d26f6";
+  element.style.outlineOffset = "-3px";
 }
 
 function updateOverlayClipPath(target: HTMLElement): void {

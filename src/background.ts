@@ -25,8 +25,6 @@ function handleElementRemoved(
   request: any,
   sender: chrome.runtime.MessageSender
 ): void {
-  chrome.runtime.sendMessage(request);
-
   chrome.storage.local.get({ removedElements: {} }, (result) => {
     const removedElements = result.removedElements as RemovedElements;
     const url = sender.tab?.url;
