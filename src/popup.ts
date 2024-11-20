@@ -216,6 +216,7 @@ function displayFilteredElements(filteredElements: RemovedElements): void {
   });
 
   addRestoreButtonListeners();
+  addEditButtonListeners();
 }
 
 function createHostnameDiv(
@@ -237,12 +238,17 @@ function createHostnameDiv(
 function createRemovedElementHTML(el: RemovedElement, index: number): string {
   return `
     <div class="removed-element-container">
-      <div class="removed-element-name">
+      <div class="removed-element-name" data-url="${el.url}" data-index="${index}">
         ${el.tagName}${el.classes.length ? `.${el.classes.join(".")}` : ""}
       </div>
-      <button class="restore-button" data-url="${el.url}" data-index="${index}">
-        <img src="../assets/icons/trash-solid.svg" alt="Restore" class="trash-icon">
-      </button>
+      <div class="element-actions">
+        <button class="edit-button" data-url="${el.url}" data-index="${index}">
+          <img src="../assets/icons/pen-to-square-solid.svg" alt="Edit" class="edit-icon">
+        </button>
+        <button class="restore-button" data-url="${el.url}" data-index="${index}">
+          <img src="../assets/icons/trash-solid.svg" alt="Restore" class="trash-icon">
+        </button>
+      </div>
     </div>
   `;
 }
@@ -255,6 +261,112 @@ function addRestoreButtonListeners(): void {
       const index = parseInt(target.dataset.index || "");
       if (url && !isNaN(index)) restoreElement(url, index);
     });
+  });
+}
+
+function addEditButtonListeners(): void {
+  elements.deletedList?.querySelectorAll(".edit-button").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const target = e.currentTarget as HTMLButtonElement;
+      const url = target.dataset.url;
+      const index = parseInt(target.dataset.index || "");
+      if (url && !isNaN(index)) {
+        const container = target.closest(".removed-element-container");
+        const nameElement = container?.querySelector(".removed-element-name");
+        const restoreButton = container?.querySelector(".restore-button") as HTMLButtonElement | null;
+        if (nameElement && container && restoreButton) {
+          const currentName = nameElement.textContent?.trim() || "";
+          const input = document.createElement("input");
+          input.type = "text";
+          input.value = currentName;
+          input.className = "edit-name-input";
+          
+          const editButton = container.querySelector(".edit-button");
+          if (editButton) {
+            editButton.innerHTML = '<img src="../assets/icons/check-solid.svg" alt="Confirm" class="check-icon">';
+            editButton.classList.add("confirm-edit");
+          }
+          
+          restoreButton.style.display = "none";
+          
+          const handleConfirm = () => {
+            const newName = input.value.trim();
+            if (newName) {
+              updateElementName(url, index, newName);
+            }
+            nameElement.textContent = newName || currentName;
+            if (editButton) {
+              editButton.innerHTML = '<img src="../assets/icons/pen-to-square-solid.svg" alt="Edit" class="edit-icon">';
+              editButton.classList.remove("confirm-edit");
+            }
+            restoreButton.style.display = "block";
+          };
+
+          const handleCancel = () => {
+            nameElement.textContent = currentName;
+            if (editButton) {
+              editButton.innerHTML = '<img src="../assets/icons/pen-to-square-solid.svg" alt="Edit" class="edit-icon">';
+              editButton.classList.remove("confirm-edit");
+            }
+            restoreButton.style.display = "block";
+          };
+
+          input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              handleConfirm();
+            } else if (e.key === "Escape") {
+              handleCancel();
+            }
+          });
+
+          input.addEventListener("blur", () => {
+            if (!editButton?.classList.contains("confirm-edit")) {
+              handleCancel();
+            }
+          });
+
+          if (editButton) {
+            const existingListener = editButton.getAttribute("data-has-listener");
+            if (!existingListener) {
+              editButton.addEventListener("click", (e) => {
+                if (editButton.classList.contains("confirm-edit")) {
+                  e.stopPropagation();
+                  handleConfirm();
+                }
+              });
+              editButton.setAttribute("data-has-listener", "true");
+            }
+          }
+
+          nameElement.textContent = "";
+          nameElement.appendChild(input);
+          input.focus();
+          input.select();
+        }
+      }
+    });
+  });
+}
+
+function updateElementName(url: string, index: number, newName: string): void {
+  chrome.storage.local.get({ removedElements: {} }, (result) => {
+    const removedElements: RemovedElements = result.removedElements;
+    const hostname = new URL(url).hostname;
+    
+    if (removedElements[hostname] && removedElements[hostname][index]) {
+      const element = removedElements[hostname][index];
+      const nameParts = newName.split(".");
+      element.tagName = nameParts[0];
+      element.classes = nameParts.slice(1);
+
+      chrome.storage.local.set({ removedElements }, () => {
+        updateDeletedList(
+          elements.websiteSearch instanceof HTMLInputElement
+            ? elements.websiteSearch.value
+            : ""
+        );
+      });
+    }
   });
 }
 

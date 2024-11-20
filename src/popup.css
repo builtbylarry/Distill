@@ -240,17 +240,30 @@ input:checked + .slider:before {
 }
 
 .restore-button,
+.edit-button,
 .unblock-button {
-  width: 25px;
-  height: 25px;
+  width: 18px;
+  height: 18px;
   background-color: transparent;
   border: none;
   cursor: pointer;
+  padding: 0;
+  margin-left: 5px;
 }
 
-.trash-icon {
+.trash-icon,
+.edit-icon,
+.check-icon {
   width: 100%;
   height: 100%;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.trash-icon:hover,
+.edit-icon:hover,
+.check-icon:hover {
+  opacity: 1;
 }
 
 .removed-elements-website-name {
@@ -288,6 +301,21 @@ input:checked + .slider:before {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.element-actions {
+  display: flex;
+  align-items: center;
+}
+
+.edit-name-input {
+  width: 100%;
+  background-color: transparent;
+  border: none;
+  color: var(--white);
+  padding: 2px 6px;
+  font-size: 14px;
+  outline: none;
 }
 
 .no-results-text {
