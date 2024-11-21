@@ -16,10 +16,7 @@
               <a href="#" id="main-tab" class="selected-tab tab-link">Main</a>
             </li>
             <li class="tab">
-              <a href="#" id="list-tab">Elements</a>
-            </li>
-            <li class="tab">
-              <a href="#" id="block-tab">Websites</a>
+              <a href="#" id="list-tab">Custom</a>
             </li>
           </ul>
         </div>
@@ -42,25 +39,22 @@
       <button id="cancel-button" class="cancel-button">Cancel</button>
     </div>
     <div id="list-content" class="list-content">
-      <input
-        type="text"
-        id="website-search"
-        placeholder="Search websites..."
-        class="input"
-      />
-      <div id="deleted-list" class="removed-elements-list-container"></div>
-    </div>
-    <div id="block-content" class="blocked-content">
       <div class="input-website-container">
         <input
           type="text"
           id="website-input"
           class="input website-input"
-          placeholder="Enter website URL"
+          placeholder="Enter website URL to block"
         />
         <button id="block-button" class="block-button">Block</button>
       </div>
-      <div id="blocked-list" class="blocked-websites-list"></div>
+      <input
+        type="text"
+        id="website-search"
+        placeholder="Search elements & blocked sites..."
+        class="input search-input"
+      />
+      <div id="deleted-list" class="removed-elements-list-container"></div>
     </div>
   </body>
 </html>

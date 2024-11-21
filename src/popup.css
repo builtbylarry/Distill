@@ -210,7 +210,7 @@ input:checked + .slider:before {
   color: white;
 }
 
-/* ---------- Elements List Page ---------- */
+/* ---------- List Content ---------- */
 
 .list-content {
   width: 100%;
@@ -230,8 +230,43 @@ input:checked + .slider:before {
   outline: none;
 }
 
-.search-input:focus {
+.input:focus {
   border-color: var(--purple);
+}
+
+.input-website-container {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.website-input {
+  width: 75%;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
+}
+
+.block-button {
+  box-sizing: border-box;
+  width: 25%;
+  border-radius: 5px;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+  font-size: 16px;
+  border: 1px solid var(--dark-purple);
+  border-left: none;
+  color: var(--white);
+  background-color: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.block-button:hover {
+  background-color: var(--dark-purple);
+}
+
+.search-input {
+  margin-bottom: 10px;
 }
 
 .removed-elements-list-container {
@@ -241,7 +276,8 @@ input:checked + .slider:before {
 
 .restore-button,
 .edit-button,
-.unblock-button {
+.unblock-button,
+.cancel-edit-button {
   width: 18px;
   height: 18px;
   background-color: transparent;
@@ -253,47 +289,77 @@ input:checked + .slider:before {
 
 .trash-icon,
 .edit-icon,
-.check-icon {
+.check-icon,
+.chevron-icon,
+.xmark-icon {
   width: 100%;
   height: 100%;
   opacity: 0.7;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .trash-icon:hover,
 .edit-icon:hover,
-.check-icon:hover {
+.check-icon:hover,
+.chevron-icon:hover,
+.xmark-icon:hover {
   opacity: 1;
 }
 
-.removed-elements-website-name {
-  color: var(--white);
-  text-align: center;
-  padding-top: 10px;
-  padding-bottom: 10px;
-  font-size: 16px;
+.chevron-icon.rotated {
+  transform: rotate(180deg);
 }
 
-.removed-elements-list > div:first-child {
+.removed-elements-list {
+  margin-bottom: 10px;
+  border: 1px solid var(--dark-purple);
+  border-radius: 6px;
+}
+
+.website-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  cursor: pointer;
+  background-color: rgba(93, 38, 246, 0.1);
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+}
+
+.website-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.dropdown-button {
+  width: 16px;
+  height: 16px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.elements-container {
   border-top: 1px solid var(--dark-purple);
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
-}
-
-.removed-elements-list > div:last-child {
-  border-bottom-left-radius: 6px;
-  border-bottom-right-radius: 6px;
 }
 
 .removed-element-container {
-  border: 1px solid var(--dark-purple);
-  border-top: none;
   padding: 10px;
   width: 100%;
   height: 35px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid rgba(93, 38, 246, 0.2);
+}
+
+.removed-element-container:last-child {
+  border-bottom: none;
 }
 
 .removed-element-name {
@@ -324,58 +390,12 @@ input:checked + .slider:before {
   font-size: 14px;
 }
 
-/* ---------- Blocked Websites Page ---------- */
-
-.blocked-content {
-  width: 100%;
-  height: calc(100% - var(--navbar-height));
-  padding: 10px;
-  box-sizing: border-box;
-  overflow-y: auto;
+/* Hide dropdown button for blocked websites */
+.removed-elements-list:not(:has(.elements-container)) .dropdown-button {
+  display: none;
 }
 
-.input-website-container {
-  display: flex;
-}
-
-.website-input {
-  width: 75%;
-  border-top-right-radius: 0px;
-  border-bottom-right-radius: 0px;
-}
-
-.block-button {
-  box-sizing: border-box;
-  width: 25%;
+/* Adjust border radius for blocked websites */
+.removed-elements-list:not(:has(.elements-container)) .website-header {
   border-radius: 5px;
-  border-top-left-radius: 0px;
-  border-bottom-left-radius: 0px;
-  font-size: 16px;
-  border: 1px solid var(--dark-purple);
-  border-left: none;
-  color: var(--white);
-  background-color: transparent;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 14px;
-}
-
-.block-button:hover {
-  background-color: var(--dark-purple);
-}
-
-.blocked-websites-list {
-  margin-top: 10px;
-  margin-bottom: 10px;
-}
-
-.blocked-websites-list > div:first-child {
-  border-top: 1px solid var(--dark-purple);
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
-}
-
-.blocked-websites-list > div:last-child {
-  border-bottom-left-radius: 6px;
-  border-bottom-right-radius: 6px;
 }

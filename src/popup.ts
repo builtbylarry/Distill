@@ -4,16 +4,13 @@ import "./popup.css";
 const elementIds = {
   mainTab: "main-tab",
   listTab: "list-tab",
-  blockTab: "block-tab",
   mainContent: "main-content",
   listContent: "list-content",
-  blockContent: "block-content",
   inspectButton: "inspect-button",
   cancelButton: "cancel-button",
   deletedList: "deleted-list",
   websiteInput: "website-input",
   blockButton: "block-button",
-  blockedList: "blocked-list",
   websiteSearch: "website-search",
   extensionToggle: "extension-toggle",
   disabledText: "disabled-text",
@@ -40,13 +37,10 @@ function addEventListeners(): void {
   elements.listTab?.addEventListener("click", (e) =>
     handleTabClick(e, elements.listContent)
   );
-  elements.blockTab?.addEventListener("click", (e) =>
-    handleTabClick(e, elements.blockContent)
-  );
   elements.inspectButton?.addEventListener("click", startInspection);
   elements.cancelButton?.addEventListener("click", cancelInspection);
   elements.extensionToggle?.addEventListener("change", toggleExtension);
-  elements.websiteSearch?.addEventListener("input", () => updateDeletedList());
+  elements.websiteSearch?.addEventListener("input", () => updateCombinedList());
   elements.blockButton?.addEventListener("click", blockWebsite);
 
   chrome.runtime.onMessage.addListener(handleMessage);
@@ -61,7 +55,7 @@ function handleTabClick(e: Event, content: HTMLElement | null): void {
 }
 
 function showTab(tabContent: HTMLElement): void {
-  [elements.mainContent, elements.listContent, elements.blockContent].forEach(
+  [elements.mainContent, elements.listContent].forEach(
     (content) => {
       content?.classList.toggle("hidden", content !== tabContent);
     }
@@ -69,7 +63,7 @@ function showTab(tabContent: HTMLElement): void {
 }
 
 function updateTabSelection(selectedTab: HTMLElement): void {
-  [elements.mainTab, elements.listTab, elements.blockTab].forEach((tab) => {
+  [elements.mainTab, elements.listTab].forEach((tab) => {
     tab?.classList.toggle("selected-tab", tab === selectedTab);
   });
 }
@@ -78,9 +72,7 @@ function handleTabSpecificActions(content: HTMLElement): void {
   if (content === elements.listContent) {
     if (elements.websiteSearch instanceof HTMLInputElement)
       elements.websiteSearch.value = "";
-    updateDeletedList();
-  } else if (content === elements.blockContent) {
-    updateBlockedList();
+    updateCombinedList();
   }
 }
 
@@ -123,7 +115,7 @@ function blockWebsite(): void {
         chrome.storage.local.set({ blockedWebsites }, () => {
           if (elements.websiteInput instanceof HTMLInputElement)
             elements.websiteInput.value = "";
-          updateBlockedList();
+          updateCombinedList();
         });
       }
     });
@@ -166,19 +158,37 @@ function updateUIForInspectionState(isEnabled: boolean): void {
       !isInspecting && !isEnabled ? "flex" : "none";
 }
 
-function updateDeletedList(searchTerm = ""): void {
-  chrome.storage.local.get({ removedElements: {} }, (result) => {
+function updateCombinedList(searchTerm = ""): void {
+  if (elements.websiteSearch instanceof HTMLInputElement) {
+    searchTerm = elements.websiteSearch.value.trim();
+  }
+
+  chrome.storage.local.get({ removedElements: {}, blockedWebsites: [] }, (result) => {
     const removedElements: RemovedElements = result.removedElements;
+    const blockedWebsites: string[] = result.blockedWebsites;
+    
     if (elements.deletedList) elements.deletedList.innerHTML = "";
 
     const filteredElements = filterRemovedElements(removedElements, searchTerm);
+    const filteredWebsites = filterBlockedWebsites(blockedWebsites, searchTerm);
 
-    if (Object.keys(filteredElements).length === 0) {
+    if (Object.keys(filteredElements).length === 0 && filteredWebsites.length === 0) {
       displayNoResultsMessage(searchTerm);
       return;
     }
 
+    filteredWebsites.forEach((website, index) => {
+      const websiteDiv = document.createElement("div");
+      websiteDiv.innerHTML = createBlockedWebsiteHTML(website, index);
+      elements.deletedList?.appendChild(websiteDiv);
+    });
+
     displayFilteredElements(filteredElements);
+
+    addRestoreButtonListeners();
+    addEditButtonListeners();
+    addUnblockButtonListeners();
+    addDropdownListeners();
   });
 }
 
@@ -201,11 +211,17 @@ function filterRemovedElements(
   return filteredElements;
 }
 
+function filterBlockedWebsites(blockedWebsites: string[], searchTerm: string): string[] {
+  return blockedWebsites.filter(website => 
+    !searchTerm || website.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+}
+
 function displayNoResultsMessage(searchTerm: string): void {
   if (elements.deletedList) {
     elements.deletedList.innerHTML = searchTerm
-      ? "<p class='no-results-text'>No matching websites found.</p>"
-      : "<p class='no-results-text'>No elements have been deleted yet.</p>";
+      ? "<p class='no-results-text'>No matching elements or websites found.</p>"
+      : "<p class='no-results-text'>No elements or websites have been blocked yet.</p>";
   }
 }
 
@@ -214,9 +230,6 @@ function displayFilteredElements(filteredElements: RemovedElements): void {
     const hostnameDiv = createHostnameDiv(hostname, removedEls);
     elements.deletedList?.appendChild(hostnameDiv);
   });
-
-  addRestoreButtonListeners();
-  addEditButtonListeners();
 }
 
 function createHostnameDiv(
@@ -225,11 +238,16 @@ function createHostnameDiv(
 ): HTMLDivElement {
   const hostnameDiv = document.createElement("div");
   hostnameDiv.innerHTML = `
-    <h3 class="removed-elements-website-name">${hostname}</h3>
     <div class="removed-elements-list">
-      ${removedEls
-        .map((el, index) => createRemovedElementHTML(el, index))
-        .join("")}
+      <div class="website-header">
+        <span class="website-name">${hostname}</span>
+        <button class="dropdown-button">
+          <img src="../assets/icons/chevron-down-solid.svg" alt="Toggle" class="chevron-icon">
+        </button>
+      </div>
+      <div class="elements-container hidden">
+        ${removedEls.map((el, index) => createRemovedElementHTML(el, index)).join("")}
+      </div>
     </div>
   `;
   return hostnameDiv;
@@ -251,6 +269,37 @@ function createRemovedElementHTML(el: RemovedElement, index: number): string {
       </div>
     </div>
   `;
+}
+
+function createBlockedWebsiteHTML(website: string, index: number): string {
+  return `
+    <div class="removed-elements-list">
+      <div class="website-header">
+        <span class="website-name">${website}</span>
+        <button class="unblock-button" data-index="${index}">
+          <img src="../assets/icons/trash-solid.svg" alt="Unblock" class="trash-icon">
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function addDropdownListeners(): void {
+  elements.deletedList?.querySelectorAll(".removed-elements-list").forEach((list) => {
+    const header = list.querySelector(".website-header");
+    const elementsContainer = list.querySelector(".elements-container");
+    const chevron = list.querySelector(".chevron-icon");
+    
+    if (header && elementsContainer && chevron) {
+      header.addEventListener("click", (e: Event) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest(".unblock-button") && !target.closest(".edit-button") && !target.closest(".restore-button")) {
+          elementsContainer.classList.toggle("hidden");
+          chevron.classList.toggle("rotated");
+        }
+      });
+    }
+  });
 }
 
 function addRestoreButtonListeners(): void {
@@ -287,6 +336,10 @@ function addEditButtonListeners(): void {
             editButton.classList.add("confirm-edit");
           }
           
+          const cancelButton = document.createElement("button");
+          cancelButton.className = "cancel-edit-button";
+          cancelButton.innerHTML = '<img src="../assets/icons/xmark-solid.svg" alt="Cancel" class="xmark-icon">';
+          
           restoreButton.style.display = "none";
           
           const handleConfirm = () => {
@@ -300,6 +353,7 @@ function addEditButtonListeners(): void {
               editButton.classList.remove("confirm-edit");
             }
             restoreButton.style.display = "block";
+            cancelButton.remove();
           };
 
           const handleCancel = () => {
@@ -309,6 +363,7 @@ function addEditButtonListeners(): void {
               editButton.classList.remove("confirm-edit");
             }
             restoreButton.style.display = "block";
+            cancelButton.remove();
           };
 
           input.addEventListener("keydown", (e) => {
@@ -338,12 +393,33 @@ function addEditButtonListeners(): void {
             }
           }
 
+          cancelButton.addEventListener("click", (e) => {
+            e.stopPropagation();
+            handleCancel();
+          });
+
           nameElement.textContent = "";
           nameElement.appendChild(input);
+          container.querySelector(".element-actions")?.insertBefore(
+            cancelButton,
+            editButton
+          );
           input.focus();
           input.select();
         }
       }
+    });
+  });
+}
+
+function addUnblockButtonListeners(): void {
+  elements.deletedList?.querySelectorAll(".unblock-button").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const index = parseInt(
+        (e.currentTarget as HTMLButtonElement).dataset.index || ""
+      );
+      if (!isNaN(index)) unblockWebsite(index);
     });
   });
 }
@@ -360,7 +436,7 @@ function updateElementName(url: string, index: number, newName: string): void {
       element.classes = nameParts.slice(1);
 
       chrome.storage.local.set({ removedElements }, () => {
-        updateDeletedList(
+        updateCombinedList(
           elements.websiteSearch instanceof HTMLInputElement
             ? elements.websiteSearch.value
             : ""
@@ -380,7 +456,7 @@ function restoreElement(url: string, index: number): void {
         delete removedElements[hostname];
 
       chrome.storage.local.set({ removedElements }, () => {
-        updateDeletedList(
+        updateCombinedList(
           elements.websiteSearch instanceof HTMLInputElement
             ? elements.websiteSearch.value
             : ""
@@ -405,46 +481,17 @@ function sendRestoreMessageToTab(
   });
 }
 
-function updateBlockedList(): void {
-  chrome.storage.local.get({ blockedWebsites: [] }, (result) => {
-    const blockedWebsites: string[] = result.blockedWebsites;
-    if (elements.blockedList) {
-      elements.blockedList.innerHTML = blockedWebsites.length
-        ? blockedWebsites.map(createBlockedWebsiteHTML).join("")
-        : "<p class='no-results-text'>No websites are currently blocked.</p>";
-
-      addUnblockButtonListeners();
-    }
-  });
-}
-
-function createBlockedWebsiteHTML(website: string, index: number): string {
-  return `
-    <div class="removed-element-container">
-      <span>${website}</span>
-      <button class="unblock-button" data-index="${index}">
-        <img src="../assets/icons/trash-solid.svg" alt="Unblock" class="trash-icon">
-      </button>
-    </div>
-  `;
-}
-
-function addUnblockButtonListeners(): void {
-  elements.blockedList?.querySelectorAll(".unblock-button").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const index = parseInt(
-        (e.currentTarget as HTMLButtonElement).dataset.index || ""
-      );
-      if (!isNaN(index)) unblockWebsite(index);
-    });
-  });
-}
-
 function unblockWebsite(index: number): void {
   chrome.storage.local.get({ blockedWebsites: [] }, (result) => {
     const blockedWebsites: string[] = result.blockedWebsites;
     blockedWebsites.splice(index, 1);
-    chrome.storage.local.set({ blockedWebsites }, () => updateBlockedList());
+    chrome.storage.local.set({ blockedWebsites }, () => {
+      updateCombinedList(
+        elements.websiteSearch instanceof HTMLInputElement
+          ? elements.websiteSearch.value
+          : ""
+      );
+    });
   });
 }
 
@@ -453,7 +500,7 @@ function handleMessage(request: any): void {
     case "elementRemoved":
       isInspecting = false;
       updateInspectionState();
-      updateDeletedList();
+      updateCombinedList();
       break;
     case "contentScriptNotReady":
       alert("Something went wrong - please refresh the page and try again.");
@@ -479,8 +526,7 @@ function initialize(): void {
   initializeElements();
   addEventListeners();
   if (elements.mainContent) showTab(elements.mainContent);
-  updateBlockedList();
-  updateDeletedList();
+  updateCombinedList();
   updateExtensionState();
 }
 
