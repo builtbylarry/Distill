@@ -269,6 +269,77 @@ input:checked + .slider:before {
   margin-bottom: 10px;
 }
 
+/* ---------- Presets Content ---------- */
+
+.presets-content {
+  width: 100%;
+  height: calc(100% - var(--navbar-height));
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.preset-selector {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.preset-selector .chevron-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  transition: transform 0.3s ease;
+}
+
+.preset-selector .chevron-icon.rotated {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.platform-select {
+  width: 100%;
+  padding: 10px;
+  padding-right: 35px;
+  background-color: var(--dark-gray);
+  border: 1px solid var(--dark-purple);
+  border-radius: 6px;
+  color: var(--white);
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.platform-select option {
+  background-color: var(--dark-gray);
+  color: var(--white);
+}
+
+.preset-options {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preset-options.visible {
+  display: flex;
+}
+
+.preset-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+}
+
+.preset-option span {
+  font-size: 14px;
+}
+
 .removed-elements-list-container {
   padding-top: 10px;
   padding-bottom: 10px;
@@ -390,12 +461,10 @@ input:checked + .slider:before {
   font-size: 14px;
 }
 
-/* Hide dropdown button for blocked websites */
 .removed-elements-list:not(:has(.elements-container)) .dropdown-button {
   display: none;
 }
 
-/* Adjust border radius for blocked websites */
 .removed-elements-list:not(:has(.elements-container)) .website-header {
   border-radius: 5px;
 }

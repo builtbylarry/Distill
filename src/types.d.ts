@@ -19,3 +19,14 @@ interface ElementInfo {
   innerHTML: string;
   url: string;
 }
+
+interface PresetOptions {
+  notifications: boolean;
+  subscriptions: boolean;
+  recommendations: boolean;
+  comments: boolean;
+}
+
+interface PlatformPresets {
+  [platform: string]: PresetOptions;
+}

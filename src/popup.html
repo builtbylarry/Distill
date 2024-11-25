@@ -18,6 +18,9 @@
             <li class="tab">
               <a href="#" id="list-tab">Custom</a>
             </li>
+            <li class="tab">
+              <a href="#" id="presets-tab">Presets</a>
+            </li>
           </ul>
         </div>
       </div>
@@ -55,6 +58,48 @@
         class="input search-input"
       />
       <div id="deleted-list" class="removed-elements-list-container"></div>
+    </div>
+    <div id="presets-content" class="presets-content">
+      <div class="preset-selector">
+        <select id="platform-select" class="platform-select">
+          <option value="" hidden>Select Platform</option>
+          <option value="youtube">YouTube</option>
+          <option value="facebook">Facebook</option>
+          <option value="twitter">Twitter</option>
+          <option value="reddit">Reddit</option>
+        </select>
+        <img src="../assets/icons/chevron-down-solid.svg" alt="Toggle" class="chevron-icon">
+      </div>
+      <div id="preset-options" class="preset-options">
+        <div class="preset-option">
+          <span>Notifications</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="notifications-toggle" />
+            <span class="slider round"></span>
+          </label>
+        </div>
+        <div class="preset-option">
+          <span>Subscriptions</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="subscriptions-toggle" />
+            <span class="slider round"></span>
+          </label>
+        </div>
+        <div class="preset-option">
+          <span>Recommendations</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="recommendations-toggle" />
+            <span class="slider round"></span>
+          </label>
+        </div>
+        <div class="preset-option">
+          <span>Comments</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="comments-toggle" />
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
     </div>
   </body>
 </html>

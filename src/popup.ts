@@ -4,8 +4,10 @@ import "./popup.css";
 const elementIds = {
   mainTab: "main-tab",
   listTab: "list-tab",
+  presetsTab: "presets-tab",
   mainContent: "main-content",
   listContent: "list-content",
+  presetsContent: "presets-content",
   inspectButton: "inspect-button",
   cancelButton: "cancel-button",
   deletedList: "deleted-list",
@@ -17,9 +19,16 @@ const elementIds = {
   navbar: "navbar",
   hr: "hr",
   body: "body",
+  platformSelect: "platform-select",
+  presetOptions: "preset-options",
+  notificationsToggle: "notifications-toggle",
+  subscriptionsToggle: "subscriptions-toggle",
+  recommendationsToggle: "recommendations-toggle",
+  commentsToggle: "comments-toggle",
 } as const;
 
 let isInspecting = false;
+let isSelectOpen = false;
 const elements: Elements = {} as Elements;
 
 function initializeElements(): void {
@@ -37,11 +46,58 @@ function addEventListeners(): void {
   elements.listTab?.addEventListener("click", (e) =>
     handleTabClick(e, elements.listContent)
   );
+  elements.presetsTab?.addEventListener("click", (e) =>
+    handleTabClick(e, elements.presetsContent)
+  );
   elements.inspectButton?.addEventListener("click", startInspection);
   elements.cancelButton?.addEventListener("click", cancelInspection);
   elements.extensionToggle?.addEventListener("change", toggleExtension);
   elements.websiteSearch?.addEventListener("input", () => updateCombinedList());
   elements.blockButton?.addEventListener("click", blockWebsite);
+
+  if (elements.platformSelect instanceof HTMLSelectElement) {
+    const chevronIcon = document.querySelector(".preset-selector .chevron-icon");
+    
+    elements.platformSelect.addEventListener("click", () => {
+      if (!isSelectOpen) {
+        isSelectOpen = true;
+        chevronIcon?.classList.add("rotated");
+      }
+    });
+
+    elements.platformSelect.addEventListener("change", (event) => {
+      isSelectOpen = false;
+      chevronIcon?.classList.remove("rotated");
+      handlePlatformChange(event);
+    });
+
+    document.addEventListener("click", (event) => {
+      const target = event.target as HTMLElement;
+      if (!elements.platformSelect?.contains(target) && isSelectOpen) {
+        isSelectOpen = false;
+        chevronIcon?.classList.remove("rotated");
+      }
+    });
+
+    elements.platformSelect.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && isSelectOpen) {
+        isSelectOpen = false;
+        chevronIcon?.classList.remove("rotated");
+      }
+    });
+
+    elements.platformSelect.addEventListener("blur", () => {
+      if (!document.activeElement?.closest('.preset-selector')) {
+        isSelectOpen = false;
+        chevronIcon?.classList.remove("rotated");
+      }
+    });
+  }
+
+  elements.notificationsToggle?.addEventListener("change", handlePresetToggle);
+  elements.subscriptionsToggle?.addEventListener("change", handlePresetToggle);
+  elements.recommendationsToggle?.addEventListener("change", handlePresetToggle);
+  elements.commentsToggle?.addEventListener("change", handlePresetToggle);
 
   chrome.runtime.onMessage.addListener(handleMessage);
 }
@@ -55,7 +111,7 @@ function handleTabClick(e: Event, content: HTMLElement | null): void {
 }
 
 function showTab(tabContent: HTMLElement): void {
-  [elements.mainContent, elements.listContent].forEach(
+  [elements.mainContent, elements.listContent, elements.presetsContent].forEach(
     (content) => {
       content?.classList.toggle("hidden", content !== tabContent);
     }
@@ -63,7 +119,7 @@ function showTab(tabContent: HTMLElement): void {
 }
 
 function updateTabSelection(selectedTab: HTMLElement): void {
-  [elements.mainTab, elements.listTab].forEach((tab) => {
+  [elements.mainTab, elements.listTab, elements.presetsTab].forEach((tab) => {
     tab?.classList.toggle("selected-tab", tab === selectedTab);
   });
 }
@@ -73,6 +129,102 @@ function handleTabSpecificActions(content: HTMLElement): void {
     if (elements.websiteSearch instanceof HTMLInputElement)
       elements.websiteSearch.value = "";
     updateCombinedList();
+  } else if (content === elements.presetsContent) {
+    loadSavedPresets();
+  }
+}
+
+function handlePlatformChange(event: Event): void {
+  const select = event.target as HTMLSelectElement;
+  const platform = select.value;
+  const presetOptions = elements.presetOptions;
+
+  if (presetOptions) {
+    if (platform) {
+      presetOptions.classList.add("visible");
+      loadPlatformPresets(platform);
+    } else {
+      presetOptions.classList.remove("visible");
+    }
+  }
+}
+
+function loadPlatformPresets(platform: string): void {
+  chrome.storage.local.get({ platformPresets: {} }, (result) => {
+    const presets = (result.platformPresets as PlatformPresets)[platform] || {
+      notifications: false,
+      subscriptions: false,
+      recommendations: false,
+      comments: false,
+    };
+
+    if (elements.notificationsToggle instanceof HTMLInputElement)
+      elements.notificationsToggle.checked = presets.notifications;
+    if (elements.subscriptionsToggle instanceof HTMLInputElement)
+      elements.subscriptionsToggle.checked = presets.subscriptions;
+    if (elements.recommendationsToggle instanceof HTMLInputElement)
+      elements.recommendationsToggle.checked = presets.recommendations;
+    if (elements.commentsToggle instanceof HTMLInputElement)
+      elements.commentsToggle.checked = presets.comments;
+  });
+}
+
+function handlePresetToggle(): void {
+  const platformSelect = elements.platformSelect as HTMLSelectElement;
+  const platform = platformSelect.value;
+
+  if (!platform) return;
+
+  const presets: PresetOptions = {
+    notifications:
+      elements.notificationsToggle instanceof HTMLInputElement
+        ? elements.notificationsToggle.checked
+        : false,
+    subscriptions:
+      elements.subscriptionsToggle instanceof HTMLInputElement
+        ? elements.subscriptionsToggle.checked
+        : false,
+    recommendations:
+      elements.recommendationsToggle instanceof HTMLInputElement
+        ? elements.recommendationsToggle.checked
+        : false,
+    comments:
+      elements.commentsToggle instanceof HTMLInputElement
+        ? elements.commentsToggle.checked
+        : false,
+  };
+
+  savePresets(platform, presets);
+}
+
+function savePresets(platform: string, presets: PresetOptions): void {
+  chrome.storage.local.get({ platformPresets: {} }, (result) => {
+    const platformPresets = result.platformPresets as PlatformPresets;
+    platformPresets[platform] = presets;
+    chrome.storage.local.set({ platformPresets }, () => {
+      applyPresets(platform, presets);
+    });
+  });
+}
+
+function applyPresets(platform: string, presets: PresetOptions): void {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const currentTab = tabs[0];
+    if (currentTab?.id) {
+      chrome.tabs.sendMessage(currentTab.id, {
+        action: "applyPresets",
+        platform,
+        presets,
+      });
+    }
+  });
+}
+
+function loadSavedPresets(): void {
+  const platformSelect = elements.platformSelect as HTMLSelectElement;
+  const platform = platformSelect.value;
+  if (platform) {
+    loadPlatformPresets(platform);
   }
 }
 

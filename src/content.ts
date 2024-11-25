@@ -4,6 +4,80 @@ let overlay: HTMLDivElement | null = null;
 let highlightedElement: HTMLElement | null = null;
 let removedElementsSelectors: string[] = [];
 
+// Platform-specific element selectors
+const platformSelectors = {
+  youtube: {
+    notifications: [
+      "#notification-preference-button",
+      "ytd-notification-topbar-button-renderer",
+    ],
+    subscriptions: [
+      "#subscribe-button",
+      "#subscribe-button-container",
+      ".ytd-subscription-notification-toggle-button-renderer",
+    ],
+    recommendations: [
+      "#related",
+      "#secondary",
+      "ytd-watch-next-secondary-results-renderer",
+      "ytd-compact-video-renderer",
+    ],
+    comments: ["#comments", "ytd-comments"],
+  },
+  facebook: {
+    notifications: [
+      ".notification-badge",
+      "[aria-label='Notifications']",
+      ".notificationsCountValue",
+    ],
+    subscriptions: [".follow-button", "[role='button'][aria-label*='Follow']"],
+    recommendations: [
+      "[aria-label='Suggested for you']",
+      ".suggestedPagesUnit",
+      "#suggestions_section",
+    ],
+    comments: [".commentable_item", ".UFIContainer", ".comments-container"],
+  },
+  twitter: {
+    notifications: [
+      "[data-testid='AppTabBar_Notifications_Link']",
+      ".notification-badge",
+    ],
+    subscriptions: [
+      "[data-testid='followButton']",
+      "[role='button'][data-testid*='follow']",
+    ],
+    recommendations: [
+      "[data-testid='sidebarColumn']",
+      "[aria-label='Who to follow']",
+      ".trends-container",
+    ],
+    comments: [
+      "[data-testid='reply']",
+      ".replies-container",
+      "[aria-label='Timeline: Conversation']",
+    ],
+  },
+  reddit: {
+    notifications: [
+      ".notification-container",
+      "#HeaderNotifications",
+      ".alert-notification",
+    ],
+    subscriptions: [
+      ".subscription-box",
+      ".subscribe-button",
+      ".community-button",
+    ],
+    recommendations: [
+      ".recommended-container",
+      "#related-communities",
+      ".premium-banner",
+    ],
+    comments: [".comments-page", ".comment", ".commentarea"],
+  },
+};
+
 function startInspection(): void {
   if (isInspecting) return;
   isInspecting = true;
@@ -179,6 +253,34 @@ function hideStoredElements(): void {
   });
 }
 
+function applyPresets(platform: string, presets: PresetOptions): void {
+  const selectors = platformSelectors[platform as keyof typeof platformSelectors];
+  if (!selectors) return;
+
+  let elementsToHide: string[] = [];
+
+  if (presets.notifications) {
+    elementsToHide = elementsToHide.concat(selectors.notifications);
+  }
+  if (presets.subscriptions) {
+    elementsToHide = elementsToHide.concat(selectors.subscriptions);
+  }
+  if (presets.recommendations) {
+    elementsToHide = elementsToHide.concat(selectors.recommendations);
+  }
+  if (presets.comments) {
+    elementsToHide = elementsToHide.concat(selectors.comments);
+  }
+
+  elementsToHide.forEach(selector => {
+    if (!removedElementsSelectors.includes(selector)) {
+      removedElementsSelectors.push(selector);
+    }
+  });
+
+  applyStyles();
+}
+
 function restoreAllElements(): void {
   chrome.storage.local.get({ removedElements: {} }, (result) => {
     const currentHostname = new URL(window.location.href).hostname;
@@ -280,6 +382,11 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
         hideStoredElements();
       } else {
         restoreAllElements();
+      }
+      break;
+    case "applyPresets":
+      if (isExtensionEnabled) {
+        applyPresets(request.platform, request.presets);
       }
       break;
   }
