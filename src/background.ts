@@ -64,6 +64,30 @@ function handleExtensionStateChange(isEnabled: boolean): void {
   if (!isEnabled) unblockAllTabs();
 }
 
+async function handleApplyPresets(request: any): Promise<void> {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return;
+    
+    chrome.tabs.sendMessage(tab.id, {
+      action: "applyPresets",
+      platform: request.platform,
+      presets: request.presets
+    }).catch(error => {
+      console.error("Error applying presets:", error);
+      chrome.runtime.sendMessage({ action: "contentScriptNotReady" });
+    });
+  } catch (error) {
+    console.error("Error in handleApplyPresets:", error);
+  }
+}
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === 'complete') {
+    tabsWithContentScript.add(tabId);
+  }
+});
+
 chrome.tabs.onRemoved.addListener((tabId) => {
   tabsWithContentScript.delete(tabId);
 });
@@ -87,7 +111,7 @@ chrome.webNavigation.onDOMContentLoaded.addListener((details) => {
   );
 });
 
-chrome.runtime.onMessage.addListener((request, sender) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request.action) {
     case "startInspection":
       handleStartInspection();
@@ -100,6 +124,16 @@ chrome.runtime.onMessage.addListener((request, sender) => {
       break;
     case "updateExtensionState":
       handleExtensionStateChange(request.isEnabled);
+      break;
+    case "ping":
+      if (sender.tab?.id && tabsWithContentScript.has(sender.tab.id)) {
+        sendResponse({ status: "ready" });
+      } else {
+        sendResponse({ status: "not_ready" });
+      }
+      return true;
+    case "applyPresets":
+      handleApplyPresets(request);
       break;
   }
 });

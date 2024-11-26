@@ -4,7 +4,6 @@ let overlay: HTMLDivElement | null = null;
 let highlightedElement: HTMLElement | null = null;
 let removedElementsSelectors: string[] = [];
 
-// Platform-specific element selectors
 const platformSelectors = {
   youtube: {
     notifications: [

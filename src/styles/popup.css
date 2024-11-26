@@ -348,7 +348,8 @@ input:checked + .slider:before {
 .restore-button,
 .edit-button,
 .unblock-button,
-.cancel-edit-button {
+.save-button,
+.cancel-button {
   width: 18px;
   height: 18px;
   background-color: transparent;
@@ -445,14 +446,31 @@ input:checked + .slider:before {
   align-items: center;
 }
 
-.edit-name-input {
+.edit-element-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
+}
+
+.edit-element-input {
+  width: 80%;
   background-color: transparent;
-  border: none;
+  border: 1px solid var(--dark-purple);
+  border-radius: 4px;
   color: var(--white);
-  padding: 2px 6px;
+  padding: 4px 8px;
   font-size: 14px;
   outline: none;
+}
+
+.edit-element-input:focus {
+  border-color: var(--purple);
+}
+
+.edit-actions {
+  display: flex;
+  align-items: center;
 }
 
 .no-results-text {

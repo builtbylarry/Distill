@@ -1,26 +1,44 @@
 {
   "manifest_version": 3,
-  "name": "Distill: Focus Extension",
+  "name": "Distill",
   "version": "1.0.0",
-  "description": "Create a focused web experience by blocking distracting websites and content.",
-  "icons": {
-    "16": "assets/images/logo_16x.png",
-    "48": "assets/images/logo_48x.png",
-    "128": "assets/images/logo_128x.png"
-  },
-  "action": {
-    "default_popup": "public/index.html"
-  },
-  "permissions": ["storage", "webNavigation"],
+  "description": "Remove distracting elements from websites",
+  "permissions": [
+    "storage",
+    "tabs",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
-    "service_worker": "assets/background.js",
+    "service_worker": "background.js",
     "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["assets/content.js"],
-      "run_at": "document_idle"
+      "js": ["content.js"],
+      "exclude_matches": ["*://chrome.google.com/*"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "assets/images/logo_16x.png",
+      "48": "assets/images/logo_48x.png",
+      "128": "assets/images/logo_128x.png"
+    }
+  },
+  "icons": {
+    "16": "assets/images/logo_16x.png",
+    "48": "assets/images/logo_48x.png",
+    "128": "assets/images/logo_128x.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["blocked.html", "blocked.css"],
+      "matches": ["<all_urls>"]
     }
   ]
 }
